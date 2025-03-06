@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Add/Edit Field</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async function () {
+            const params = new URLSearchParams(window.location.search);
+            const editId = params.get("edit");
+            const addParentId = params.get("add_parent");
+            const addSiblingId = params.get("add_sibling");
+            const dataset_type = "{{ dataset_type }}";
+            const sheetId = params.get("sheet_id") || null;
+            const corporateId = params.get("corporate_id") || null;
+
+            async function fetchFieldData(url) {
+                const response = await fetch(url);
+                return await response.json();
+            }
+
+            if (editId) {
+                document.getElementById("formTitle").innerText = "Edit Field";
+                const field = await fetchFieldData(`/dataset_form_get_field/${dataset_type}/${editId}`);
+
+                document.getElementById("input_code").value = field.input_code;
+                document.getElementById("input_display").value = field.input_display;
+                document.getElementById("input_type").value = field.input_type || "text/free";
+                document.getElementById("is_mandatory").checked = field.is_mandatory;
+                document.getElementById("select_value").value = field.select_value || "";
+                document.getElementById("is_upload").checked = field.is_upload;
+                document.getElementById("parent_id").value = field.parent_id || "";
+                document.getElementById("is_header").checked = field.is_header;
+
+                if (dataset_type === "corporate") {
+                    document.getElementById("corporate_id").value = field.corporate_id;
+                } else {
+                    document.getElementById("sheet_id").value = field.sheet_id;
+                }
+
+                toggleInputFields();
+            } else if (addParentId) {
+                document.getElementById("formTitle").innerText = "Add New Child";
+                document.getElementById("parent_id").value = addParentId;
+
+                let apiUrl = `/dataset_form_get_parent_sibling_info/${dataset_type}/${addParentId}/${dataset_type === "corporate" ? corporateId : sheetId}`;
+                const data = await fetchFieldData(apiUrl);
+
+                document.getElementById("parent_display").innerText = data.parent_display || "Root";
+                document.getElementById("last_sibling_code").innerText = data.last_sibling_code || "None";
+                document.getElementById("input_code").value = data.next_input_code;
+            } else if (addSiblingId) {
+                document.getElementById("formTitle").innerText = "Add New Sibling";
+                document.getElementById("parent_id").value = 0;
+
+                let apiUrl = `/dataset_form_get_parent_sibling_info/${dataset_type}/${addSiblingId}/${dataset_type === "corporate" ? corporateId : sheetId}`;
+                const data = await fetchFieldData(apiUrl);
+
+                document.getElementById("parent_display").innerText = "Root";
+                document.getElementById("last_sibling_code").innerText = data.last_sibling_code || "None";
+                document.getElementById("input_code").value = data.next_input_code;
+            }
+
+            loadComplianceSheets();
+        });
+
+        function toggleInputFields() {
+            const isHeader = document.getElementById("is_header").checked;
+            document.getElementById("input_type").disabled = isHeader;
+            document.getElementById("is_mandatory").disabled = isHeader;
+            document.getElementById("select_value").disabled = isHeader;
+            document.getElementById("is_upload").disabled = isHeader;
+        }
+
+        async function saveField() {
+            const params = new URLSearchParams(window.location.search);
+            const editId = params.get("edit");
+            const dataset_type = "{{ dataset_type }}";
+            const sheetId = params.get("sheet_id") || null;
+            const corporateId = params.get("corporate_id") || null;
+
+            const data = {
+                input_code: document.getElementById("input_code").value,
+                input_display: document.getElementById("input_display").value,
+                input_type: document.getElementById("input_type").value,
+                is_mandatory: document.getElementById("is_mandatory").checked,
+                select_value: document.getElementById("select_value").value,
+                is_upload: document.getElementById("is_upload").checked,
+                parent_id: document.getElementById("parent_id").value || null,
+                is_header: document.getElementById("is_header").checked,
+                sheet_id: dataset_type === "compliance" ? sheetId : null,
+                corporate_id: dataset_type === "corporate" ? corporateId : null
+            };
+
+            let url = editId ? `/dataset_form_edit_field/${dataset_type}/${editId}` : `/dataset_form_add_field/${dataset_type}`;
+            let method = editId ? "PUT" : "POST";
+
+            const response = await fetch(url, {
+                method: method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            alert(result.message);
+            window.opener.location.reload();
+            window.close();
+        }
+    </script>
+</head>
+<body class="bg-light">
+    <div class="container mt-4 p-4 bg-white shadow rounded">
+        <h2 id="formTitle" class="text-center text-primary">Add/Edit Field</h2>
+
+        <form>
+            <div class="mb-3">
+                <label class="form-label">Sheet ID:</label>
+                <input id="sheet_id" type="number" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Parent Field:</label>
+                <span id="parent_display" class="form-control bg-light"></span>
+                <input id="parent_id" type="hidden">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Last Sibling Input Code:</label>
+                <span id="last_sibling_code" class="form-control bg-light"></span>
+            </div>
+
+            <div class="mb-3 form-check">
+                <input id="is_header" type="checkbox" class="form-check-input" onchange="toggleInputFields()">
+                <label class="form-check-label">Is Header (Group Label)?</label>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Input Code:</label>
+                <input id="input_code" type="text" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Display Name:</label>
+                <input id="input_display" type="text" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Type:</label>
+                <select id="input_type" class="form-select">
+                    <option value="text/free">Text (Free)</option>
+                    <option value="text/number">Text (Number)</option>
+                    <option value="text/email">Text (Email)</option>
+                    <option value="text/date">Text (Date)</option>
+                    <option value="select/radio">Select (Radio)</option>
+                    <option value="select/check">Select (Checkbox)</option>
+                    <option value="select/drop">Select (Dropdown)</option>
+                </select>
+            </div>
+
+            <div class="mb-3 form-check">
+                <input id="is_mandatory" type="checkbox" class="form-check-input">
+                <label class="form-check-label">Mandatory</label>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Select Values:</label>
+                <input id="select_value" type="text" class="form-control">
+            </div>
+
+            <div class="mb-3 form-check">
+                <input id="is_upload" type="checkbox" class="form-check-input">
+                <label class="form-check-label">Allow File Upload</label>
+            </div>
+
+            <button type="button" onclick="saveField()" class="btn btn-success w-100">
+                <i class="fa-solid fa-save"></i> Save
+            </button>
+
+            <label for="compliance_sheet" id="compliance_label" style="display: none;">Linked Compliance Sheet:</label>
+            <select id="compliance_sheet" name="compliance_sheet_id" class="form-select" style="display: none;">
+                <option value="">Select Compliance Sheet</option>
+            </select>
+
+            <script>
+                async function loadComplianceSheets() {
+                    if (dataset_type === "corporate") {
+                        document.getElementById("compliance_label").style.display = "block";
+                        document.getElementById("compliance_sheet").style.display = "block";
+
+                        const response = await fetch('/get_compliance_sheets');
+                        const sheets = await response.json();
+
+                        const dropdown = document.getElementById('compliance_sheet');
+                        sheets.forEach(sheet => {
+                            const option = document.createElement('option');
+                            option.value = sheet.id;
+                            option.textContent = sheet.sheet_description;
+                            dropdown.appendChild(option);
+                        });
+                    }
+                }
+                window.onload = loadComplianceSheets;
+            </script>
+
+            <button type="button" onclick="saveField()" class="btn btn-success w-100">
+                <i class="fa-solid fa-save"></i> Save
+            </button>
+        </form>
+    </div>
+</body>
+</html>
