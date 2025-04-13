@@ -14,22 +14,15 @@
         async function loadDatasetInput() {
             const dataset_type = "{{ dataset_type }}";
             const inputCode = "{{ input_code }}" !== "None" ? "{{ input_code }}" : null;
-            const sheetId = "{{ sheet_id }}" || null;
-            const corporateId = "{{ corporate_id }}" || null;
 
-            let apiUrl = "";
-            if (dataset_type === "corporate" && corporateId !== "None" && corporateId !== null) {
-                apiUrl = `/dataset_data_input_get_dataset_structure/${dataset_type}/${corporateId}`;
-            } else if (dataset_type === "compliance" && sheetId !== "None" && sheetId !== null) {
-                apiUrl = `/dataset_data_input_get_dataset_structure/${dataset_type}/${sheetId}`;
-            } else {
-                console.error("❌ Error: Missing required ID (sheet_id or corporate_id).");
-                return;
-            }
+            const sheetId = "{{ sheet_id }}" !== "None" ? "{{ sheet_id }}" : null;
+            const corporateId = "{{ corporate_id }}" !== "None" ? "{{ corporate_id }}" : null;
+            const companyDataId = "{{ company_data_id }}" !== "None" ? "{{ company_data_id }}" : null;
 
-            if (inputCode && inputCode !== "None") {
-                apiUrl += `/${inputCode}`;
-            }
+            let entityId = sheetId || corporateId || companyDataId;
+
+            let apiUrl = `/dataset_data_input_get_dataset_structure/${dataset_type}/${entityId}`;
+            if (inputCode) apiUrl += `/${inputCode}`;
 
             console.log("✅ Fetching dataset from:", apiUrl);
 
@@ -39,60 +32,105 @@
                 console.log("📊 Fetched Dataset:", dataset);
 
                 const formContainer = document.getElementById("form-container");
-                formContainer.innerHTML = "";
+                let backButton = "";
+                if (inputCode) {
+                    backButton = `<a href="/dataset_data_input/${dataset_type}/${sheetId}" class="btn btn-sm btn-warning mb-3">
+                                    <i class="fa-solid fa-arrow-left"></i> Back to Full Form
+                                  </a>`;
+                }
+
+                formContainer.innerHTML = `
+                    <form id="dynamicForm" onsubmit="submitForm(event)">
+                        ${backButton}
+                        <div class="accordion" id="datasetAccordion">
+                            ${createForm(dataset, null)}
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 mt-3">
+                            <i class="fa-solid fa-save"></i> Submit
+                        </button>
+                    </form>
+                `;
 
                 function createForm(data, parentId) {
-                    let items = data.filter(d => d.parent_id == parentId);
-                    if (!items.length) return "";
+                    const items = data.filter(d => d.parent_id == parentId);
+                    if (!items || !items.length) return "";
 
-                    let html = '<ul class="list-group">';
+                    let html = "";
                     items.forEach(item => {
-                        html += `<li class="list-group-item">`;
-
                         if (item.is_header) {
-                            html += `<strong>${item.input_display}</strong>`;
+                            const collapseId = `collapse_${item.input_code.replace(/\./g, "_")}`;
+                            html += `
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="heading_${collapseId}">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="false" aria-controls="${collapseId}">
+                                            ${item.input_display}
+                                        </button>
+                                    </h2>
+                                    <div id="${collapseId}" class="accordion-collapse collapse" aria-labelledby="heading_${collapseId}">
+                                        <div class="accordion-body">
+                                            ${createForm(data, item.id)}
+                                        </div>
+                                    </div>
+                                </div>`;
                         } else {
-                            html += `<label>${item.input_display}</label>`;
-                            if (item.input_type.startsWith("text/")) {
+                            html += `<div class="mb-3">
+                                        <label>${item.input_display}
+                                        </label>
+                                        `;
+                            if (item.input_type && item.input_type.startsWith("text/")) {
                                 html += `<input type="${item.input_type.split("/")[1]}" class="form-control" name="${item.input_code}" ${item.is_mandatory ? "required" : ""}>`;
-                            }
-                            else if (item.input_type.startsWith("select/")) {
-                                let options = item.select_value ? item.select_value.split(",") : [];
+                            } else if (item.input_type && item.input_type.startsWith("select/")) {
+                                const options = item.select_value?.split(",").map(o => o.trim()) || [];
                                 if (item.input_type.includes("drop")) {
-                                    html += `<select class="form-select" name="${item.input_code}" ${item.is_mandatory ? "required" : ""}>`;
-                                    options.forEach(opt => html += `<option value="${opt.trim()}">${opt.trim()}</option>`);
+                                    html += `<select class="form-select" name="${item.input_code}">`;
+                                    options.forEach(opt => {
+                                        html += `<option value="${opt}">${opt}</option>`;
+                                    });
                                     html += `</select>`;
                                 } else if (item.input_type.includes("radio")) {
                                     options.forEach(opt => {
                                         html += `<div class="form-check">
-                                                    <input class="form-check-input" type="radio" name="${item.input_code}" value="${opt.trim()}" ${item.is_mandatory ? "required" : ""}>
-                                                    <label class="form-check-label">${opt.trim()}</label>
+                                                    <input class="form-check-input" type="radio" name="${item.input_code}" value="${opt}">
+                                                    <label class="form-check-label">${opt}</label>
                                                  </div>`;
                                     });
                                 } else if (item.input_type.includes("check")) {
                                     options.forEach(opt => {
                                         html += `<div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" name="${item.input_code}[]" value="${opt.trim()}">
-                                                    <label class="form-check-label">${opt.trim()}</label>
+                                                    <input class="form-check-input" type="checkbox" name="${item.input_code}[]" value="${opt}">
+                                                    <label class="form-check-label">${opt}</label>
                                                  </div>`;
                                     });
                                 }
                             } else if (item.is_upload) {
-                                html += `<input type="file" class="form-control" name="${item.input_code}" ${item.is_mandatory ? "required" : ""}>`;
+                                html += `<input type="file" class="form-control" name="${item.input_code}" onchange="toggleMeta('${item.input_code}')">
+                                            <fieldset id="meta_${item.input_code}" class="border p-3 bg-light rounded mt-2 d-none">
+                                                <legend class="float-none w-auto fs-6 text-muted">Document Info</legend>
+                                                <div class="row g-2 align-items-center">
+                                                    <div class="col-md-2 form-check">
+                                                        <input class="form-check-input" type="checkbox" name="${item.input_code}_is_original" id="${item.input_code}_original">
+                                                        <label class="form-check-label" for="${item.input_code}_original">Original</label>
+                                                    </div>
+                                                    <div class="col-md-2 form-check">
+                                                        <input class="form-check-input" type="checkbox" name="${item.input_code}_is_copy" id="${item.input_code}_copy">
+                                                        <label class="form-check-label" for="${item.input_code}_copy">Copy</label>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <input type="date" class="form-control" name="${item.input_code}_next_due_date" placeholder="Next Due Date">
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <input type="text" class="form-control" name="${item.input_code}_side_note" placeholder="Side Note">
+                                                    </div>
+                                                </div>
+                                            </fieldset>
+                                `;
                             }
+                            html += `</div>`;
                         }
-
-                        html += `<div class="ms-4">${createForm(data, item.id)}</div>`;
-                        html += `</li>`;
                     });
-                    html += "</ul>";
+
                     return html;
                 }
-
-                formContainer.innerHTML = `<form id="dynamicForm" onsubmit="submitForm(event)">
-                                               ${createForm(dataset, null)}
-                                               <button type="submit" class="btn btn-success w-100 mt-3"><i class="fa-solid fa-save"></i> Submit</button>
-                                           </form>`;
 
             } catch (error) {
                 console.error("❌ Error fetching dataset:", error);
@@ -103,13 +141,27 @@
             event.preventDefault();
             const formData = new FormData(document.getElementById("dynamicForm"));
 
-            const response = await fetch(`/dataset_data_input_submit_form/${dataset_type}`, {
+            const response = await fetch(`/dataset_data_input_submit_form/${dataset_type}?` +
+                (sheetId ? `sheet_id=${sheetId}` :
+                 corporateId ? `corporate_id=${corporateId}` :
+                 `company_data_id=${companyDataId}`),
+            {
                 method: "POST",
                 body: formData
             });
 
             const result = await response.json();
             alert(result.message);
+        }
+
+        function toggleMeta(code) {
+            const fileInput = document.querySelector(`input[name='${code}']`);
+            const metaDiv = document.getElementById(`meta_${code}`);
+            if (fileInput && fileInput.files.length > 0) {
+                metaDiv.classList.remove('d-none');
+            } else {
+                metaDiv.classList.add('d-none');
+            }
         }
 
         window.onload = loadDatasetInput;

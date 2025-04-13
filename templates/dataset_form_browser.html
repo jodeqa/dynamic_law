@@ -16,16 +16,11 @@
             const dataset_type = "{{ dataset_type }}" !== "None" ? "{{ dataset_type }}" : null;
             const sheetId = "{{ sheet_id }}" !== "None" ? "{{ sheet_id }}" : null;
             const corporateId = "{{ corporate_id }}" !== "None" ? "{{ corporate_id }}" : null;
+            const companyDataId  = "{{ company_data_id }}" !== "None" ? "{{ company_data_id }}" : null;
 
-            let apiUrl = "";
-            if (dataset_type === "corporate" && corporateId) {
-                apiUrl = `/dataset_form_tree/${dataset_type}/${corporateId}`;
-            } else if (dataset_type === "compliance" && sheetId) {
-                apiUrl = `/dataset_form_tree/${dataset_type}/${sheetId}`;
-            } else {
-                console.error("Error: Missing required ID (sheet_id or corporate_id).");
-                return;
-            }
+            let entityId = sheetId || corporateId || companyDataId;
+
+            let apiUrl = `/dataset_form_tree/${dataset_type}/${entityId}`;
 
             try {
                 const response = await fetch(apiUrl);
@@ -60,13 +55,21 @@
                         <a href="/dataset_form_add_and_edit.html?add_sibling=${item.parent_id}&dataset_type=${dataset_type}&sheet_id=${item.sheet_id}" class="btn btn-sm btn-primary">
                             <i class="fa-solid fa-plus"></i>
                         </a>`;
+                } else if (dataset_type === "company_data") {
+                    addButtons = `
+                        <a href="/dataset_form_add_and_edit.html?add_parent=${item.id}&dataset_type=${dataset_type}&sheet_id=${item.company_data_id}" class="btn btn-sm btn-success">
+                            <i class="fa-solid fa-level-down-alt"></i>
+                        </a>
+                        <a href="/dataset_form_add_and_edit.html?add_sibling=${item.parent_id}&dataset_type=${dataset_type}&sheet_id=${item.company_data_id}" class="btn btn-sm btn-primary">
+                            <i class="fa-solid fa-plus"></i>
+                        </a>`;
                 }
 
                 html += `
                     <li class="list-group-item">
                         <i class="fas fa-file-alt"></i> ${item.input_display} (${item.input_type ? item.input_type : "No Type"})
                         <span class="float-end">
-                            <a href="/dataset_form_add_and_edit.html?edit=${item.id}&dataset_type=${dataset_type}" class="btn btn-sm btn-warning">
+                            <a href="/dataset_form_add_and_edit.html?edit=${item.id}&dataset_type=${dataset_type}&sheet_id=${item.sheet_id || ''}&corporate_id=${item.corporate_id || ''}&company_data_id=${item.company_data_id || ''}" class="btn btn-sm btn-warning">
                                 <i class="fas fa-edit"></i>
                             </a>
                             ${addButtons}

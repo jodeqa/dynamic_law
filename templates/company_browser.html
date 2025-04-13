@@ -1,0 +1,119 @@
+<!-- company_browser.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Company Browser</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="p-4">
+  <h2>Companies in Group {{ group_id }}</h2>
+  <button class="btn btn-primary mb-2" onclick="openCompanyForm()">+ New Company</button>
+  <button class="btn btn-outline-secondary mb-2" onclick="toggleView()">Toggle Table/Tree</button>
+  <div id="tree-container" class="mt-3"></div>
+  <div id="table-container" class="mt-3" style="display:none">
+    <table id="companyTable" class="table table-bordered">
+      <thead><tr><th>Code</th><th>Name</th><th>Next Inspection</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const groupId = {{ group_id }};
+
+    async function loadTree() {
+      const res = await fetch(`/company_tree_data/${groupId}`);
+      const data = await res.json();
+      document.getElementById('tree-container').innerHTML = renderTree(data);
+      renderTable(data);
+    }
+
+    function renderTree(data) {
+      function build(parentId = null) {
+        const nodes = data.filter(d => d.parent_id === parentId);
+        if (!nodes.length) return '';
+        let html = '<ul class="list-group">';
+        nodes.forEach(node => {
+          html += `<li class="list-group-item">
+              <strong>${node.input_code} - ${node.company_name}</strong>
+              <span class="float-end">
+                <button class="btn btn-sm btn-warning" onclick="openCompanyForm(${node.id})">Edit</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteCompany(${node.id})">Delete</button>
+              </span>
+              ${build(node.id)}
+            </li>`;
+        });
+        html += '</ul>';
+        return html;
+      }
+      return build();
+    }
+
+    function renderTable(data) {
+      const tbody = document.querySelector("#companyTable tbody");
+      tbody.innerHTML = '';
+      data.forEach(row => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${row.input_code}</td>
+            <td>${row.company_name}</td>
+            <td>${row.next_inpection_date || '-'}</td>
+            <td>
+              <button class="btn btn-sm btn-warning" onclick="openCompanyForm(${row.id})">Edit</button>
+              <button class="btn btn-sm btn-danger" onclick="deleteCompany(${row.id})">Delete</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function toggleView() {
+      const tree = document.getElementById("tree-container");
+      const table = document.getElementById("table-container");
+      tree.style.display = tree.style.display === "none" ? "block" : "none";
+      table.style.display = table.style.display === "none" ? "block" : "none";
+    }
+
+    function openCompanyForm(id = null) {
+      let url = `/company_form.html?group_id=${groupId}`;
+      if (id) url += `&edit=${id}`;
+
+      const width = 600;
+      const height = 500;
+
+      // Get browser screen position
+      const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
+      const dualScreenTop = window.screenTop !== undefined ? window.screenTop : screen.top;
+
+      const windowWidth = window.innerWidth
+        ? window.innerWidth
+        : document.documentElement.clientWidth
+        ? document.documentElement.clientWidth
+        : screen.width;
+      const windowHeight = window.innerHeight
+        ? window.innerHeight
+        : document.documentElement.clientHeight
+        ? document.documentElement.clientHeight
+        : screen.height;
+
+      const left = dualScreenLeft + (windowWidth - width) / 2;
+      const top = dualScreenTop + (windowHeight - height) / 2;
+
+      const features = `scrollbars=yes,resizable=yes,width=${width},height=${height},top=${top},left=${left}`;
+
+      // Use a consistent name to force separate popup instead of tab
+      window.open(url, 'CompanyFormWindow', features);
+    }
+
+
+    async function deleteCompany(id) {
+      if (!confirm('Delete this company?')) return;
+      await fetch(`/company_delete/${id}`, { method: 'DELETE' });
+      loadTree();
+    }
+
+    window.onload = loadTree;
+  </script>
+
+</body>
+</html>

@@ -4,6 +4,7 @@ CREATE TYPE input_type_enum AS ENUM (
     'text/number', 
     'text/email', 
     'text/date', 
+    'text/links', 
     'select/radio', 
     'select/check', 
     'select/drop'
@@ -43,48 +44,94 @@ CREATE TABLE compliance_sheet_entries (
     sheet_id INT NOT NULL,
     input_code VARCHAR(50) NOT NULL,
     user_id INT NOT NULL,
-    value TEXT, -- Store text, number, selected options
-    file_path TEXT, -- Store uploaded file path
+    value TEXT,
+    file_path TEXT,
+    is_original BOOLEAN DEFAULT FALSE,
+    is_copy BOOLEAN DEFAULT FALSE,
+    is_complete BOOLEAN DEFAULT FALSE,
+    next_due_date DATE,
+    side_note TEXT,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
 
--- Step 5: Create corporate_browse table
-CREATE TABLE corporate_browse (
+-- step 5: Create corporate_group table
+CREATE TABLE corporate_group (
     id SERIAL PRIMARY KEY,
-    corporate_name VARCHAR(50) NOT NULL,
-    corporate_description TEXT NOT NULL,
+    group_name VARCHAR(100) NOT NULL,
+    group_description TEXT,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
 
--- Step 6: Create corporate_structure table
-CREATE TABLE corporate_structure (
+-- Step 6: Create company_structure table
+CREATE TABLE company_structure (
     id SERIAL PRIMARY KEY,
-    corporate_id INT NOT NULL,
+    group_id INT NOT NULL REFERENCES corporate_group(id),
+    company_name TEXT NOT NULL,
+    input_code VARCHAR(50) NOT NULL,  -- COA-style tree code
+    parent_id INT REFERENCES company_structure(id) ON DELETE CASCADE,
+    next_inpection_date DATE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    CONSTRAINT unique_company_tree UNIQUE (group_id, input_code)
+);
+
+
+-- Step 7: Create company_data_structure table
+CREATE TABLE company_data_browse (
+    id SERIAL PRIMARY KEY,
+    company_data_search_tag VARCHAR(50) NOT NULL,
+    company_data_description TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+
+-- Step 8: Create company_data_structure table
+CREATE TABLE company_data_structure (
+    id SERIAL PRIMARY KEY,
+    company_data_id INT NOT NULL,
     input_code VARCHAR(50) NOT NULL,
-    parent_id INT,  -- Parent ID for tree structure (NULL means root)
+    parent_id INT,
     is_header BOOLEAN NOT NULL DEFAULT FALSE,
     input_display TEXT NOT NULL,
     input_type VARCHAR(50),
     is_mandatory BOOLEAN DEFAULT FALSE,
-    select_value TEXT, -- Stores 'option1, option2'
+    select_value TEXT,
     is_upload BOOLEAN DEFAULT FALSE,
-    sheet_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT NOW(),
-    CONSTRAINT unique_corporate_input UNIQUE (corporate_id, input_code),
-    CONSTRAINT fk_corporate_compliance FOREIGN KEY (sheet_id) REFERENCES compliance_sheet_browse(id) ON DELETE SET null,
-    FOREIGN KEY (parent_id) REFERENCES corporate_structure(id) ON DELETE CASCADE
+    CONSTRAINT unique_template_input UNIQUE (template_name, input_code)
 );
 
 
--- Step 7: Create corporate_entries table
-CREATE TABLE corporate_entries (
+
+-- Step 9: Create company_template_mapping table
+CREATE TABLE company_template_mapping (
     id SERIAL PRIMARY KEY,
-    sheet_id INT NOT NULL,
-    input_code VARCHAR(50) NOT NULL,
-    user_id INT NOT NULL,
-    value TEXT, -- Store text, number, selected options
-    file_path TEXT, -- Store uploaded file path
+    company_id INT NOT NULL REFERENCES company_structure(id),
+    company_data_id INT NOT NULL,  -- same as in company_data_structure
+    compliance_sheet_id INT REFERENCES compliance_sheet_browse(id),
     created_at TIMESTAMP DEFAULT NOW()
 );
+
+
+-- Step 10: Create company_data_entries
+CREATE TABLE company_data_entries (
+    id SERIAL PRIMARY KEY,
+    company_id INT NOT NULL,
+    input_code VARCHAR(50) NOT NULL,
+    value TEXT,
+    file_path TEXT,
+    is_original BOOLEAN DEFAULT FALSE,
+    is_copy BOOLEAN DEFAULT FALSE,
+    is_complete BOOLEAN DEFAULT FALSE,
+    next_due_date DATE,
+    side_note TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+
+-- Step 11: create View
+SELECT company_id, COUNT(*) FILTER (WHERE value IS NOT NULL OR file_path IS NOT NULL) AS uploaded_count
+FROM company_data_entries
+GROUP BY company_id
+

@@ -19,6 +19,7 @@
             const dataset_type = "{{ dataset_type }}";
             const sheetId = params.get("sheet_id") || null;
             const corporateId = params.get("corporate_id") || null;
+            const companyDataId  = "{{ company_data_id }}" || null;
 
             async function fetchFieldData(url) {
                 const response = await fetch(url);
@@ -49,7 +50,11 @@
                 document.getElementById("formTitle").innerText = "Add New Child";
                 document.getElementById("parent_id").value = addParentId;
 
-                let apiUrl = `/dataset_form_get_parent_sibling_info/${dataset_type}/${addParentId}/${dataset_type === "corporate" ? corporateId : sheetId}`;
+                let apiUrl = `/dataset_form_get_parent_sibling_info/${dataset_type}/${addParentId}/${dataset_type === "corporate"
+                    ? corporateId
+                    : dataset_type === "compliance"
+                    ? sheetId
+                    : companyDataId}`;
                 const data = await fetchFieldData(apiUrl);
 
                 document.getElementById("parent_display").innerText = data.parent_display || "Root";
@@ -59,7 +64,11 @@
                 document.getElementById("formTitle").innerText = "Add New Sibling";
                 document.getElementById("parent_id").value = 0;
 
-                let apiUrl = `/dataset_form_get_parent_sibling_info/${dataset_type}/${addSiblingId}/${dataset_type === "corporate" ? corporateId : sheetId}`;
+                let apiUrl = `/dataset_form_get_parent_sibling_info/${dataset_type}/${addSiblingId}/${dataset_type === "corporate"
+                    ? corporateId
+                    : dataset_type === "compliance"
+                    ? sheetId
+                    : companyDataId}`;
                 const data = await fetchFieldData(apiUrl);
 
                 document.getElementById("parent_display").innerText = "Root";
@@ -84,6 +93,7 @@
             const dataset_type = "{{ dataset_type }}";
             const sheetId = params.get("sheet_id") || null;
             const corporateId = params.get("corporate_id") || null;
+            const companyDataId = params.get("company_data_id") || null;
 
             const data = {
                 input_code: document.getElementById("input_code").value,
@@ -95,7 +105,8 @@
                 parent_id: document.getElementById("parent_id").value || null,
                 is_header: document.getElementById("is_header").checked,
                 sheet_id: dataset_type === "compliance" ? sheetId : null,
-                corporate_id: dataset_type === "corporate" ? corporateId : null
+                corporate_id: dataset_type === "corporate" ? corporateId : null,
+                company_data_id: dataset_type === "company_data" ? companyDataId : null
             };
 
             let url = editId ? `/dataset_form_edit_field/${dataset_type}/${editId}` : `/dataset_form_add_field/${dataset_type}`;
@@ -177,10 +188,6 @@
                 <input id="is_upload" type="checkbox" class="form-check-input">
                 <label class="form-check-label">Allow File Upload</label>
             </div>
-
-            <button type="button" onclick="saveField()" class="btn btn-success w-100">
-                <i class="fa-solid fa-save"></i> Save
-            </button>
 
             <label for="compliance_sheet" id="compliance_label" style="display: none;">Linked Compliance Sheet:</label>
             <select id="compliance_sheet" name="compliance_sheet_id" class="form-select" style="display: none;">

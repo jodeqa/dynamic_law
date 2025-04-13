@@ -1,339 +1,451 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, render_template, request, jsonify
 import psycopg2
-from psycopg2.extras import RealDictCursor
-import psycopg2.errors
+import psycopg2.extras
+from datetime import datetime
 
 app = Flask(__name__)
 
-DATABASE = "dynamic_law"
-USER = "postgres"
-PASSWORD = "P@ssw0rd"
-HOST = "localhost"
 
-VALID_INPUT_TYPES = {
-    "text/free", "text/number", "text/email", "text/date",
-    "select/radio", "select/check", "select/drop"
-}
-
-# vc20250306
-#  Generic Function ===================================================================================================
-
+# --- Database connection ---
 def get_db_connection():
     return psycopg2.connect(
-        database=DATABASE,
-        user=USER,
-        password=PASSWORD,
-        host=HOST,
-        port=5432,
-        cursor_factory=RealDictCursor)
+        host='localhost',
+        database='dynamic_law',
+        user='postgres',
+        password='P@ssw0rd',
+        port=5432
+    )
 
 
-def increment_last_segment(input_code):
-    parts = input_code.split(".")  # Split by "."
-    parts[-1] = str(int(parts[-1]) + 1)  # Increment the last segment
-    return ".".join(parts)  # Join back into a string
+# --- Dataset Type Mapping ---
+dataset_structure_tables = {
+    "compliance": "compliance_sheet_structure",
+    "corporate": "corporate_structure",
+    "company_data": "company_data_structure"
+}
+
+dataset_entries_tables = {
+    "compliance": "compliance_sheet_entries",
+    "corporate": "corporate_entries",
+    "company_data": "company_data_entries"
+}
+
+
+#  Corporate and Company Browser ====================================================================================
+# --- 1. Browse Corporate Groups ---
+@app.route('/corporate_group_browser')
+def corporate_group_browser():
+    return render_template('corporate_group_browser.html')
+
+
+@app.route('/corporate_group_data')
+def corporate_group_data():
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute("SELECT id, group_name, group_description, created_at FROM corporate_group ORDER BY id")
+    data = cursor.fetchall()
+    conn.close()
+    return jsonify({"data": data})
+
+
+# --- 2. Add/Edit Corporate Group ---
+@app.route('/corporate_group_form', methods=['GET'])
+def corporate_group_form():
+    group_id = request.args.get('edit')
+    if group_id:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cursor.execute("SELECT * FROM corporate_group WHERE id = %s", (group_id,))
+        group = cursor.fetchone()
+        conn.close()
+        return render_template('corporate_group_form.html', group=group)
+    return render_template('corporate_group_form.html', group=None)
+
+
+@app.route('/corporate_group_save', methods=['POST'])
+def corporate_group_save():
+    data = request.form
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    if data.get('id'):
+        cursor.execute("UPDATE corporate_group SET group_name = %s, description = %s WHERE id = %s",
+                       (data['group_name'], data['description'], data['id']))
+    else:
+        cursor.execute("INSERT INTO corporate_group (group_name, description) VALUES (%s, %s)",
+                       (data['group_name'], data['description']))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Corporate Group saved successfully"})
+
+
+@app.route('/corporate_group_delete/<int:group_id>', methods=['DELETE'])
+def corporate_group_delete(group_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM corporate_group WHERE id = %s", (group_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Corporate Group deleted"})
+
+
+# --- 3. Browse Company Structure (Tree or Table) ---
+@app.route('/company_browser/<int:group_id>')
+def company_browser(group_id):
+    return render_template('company_browser.html', group_id=group_id)
+
+
+@app.route('/company_tree_data/<int:group_id>')
+def company_tree_data(group_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute("""
+        SELECT id, parent_id, input_code, company_name, next_inpection_date 
+        FROM company_structure WHERE group_id = %s ORDER BY input_code
+    """, (group_id,))
+    companies = cursor.fetchall()
+    conn.close()
+    return jsonify(companies)
+
+
+@app.route('/company_form.html')
+def company_form():
+    group_id = request.args.get('group_id', type=int)
+    company_id = request.args.get('edit', type=int)
+    company = None
+
+    if company_id:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cursor.execute("SELECT * FROM company_structure WHERE id = %s", (company_id,))
+        company = cursor.fetchone()
+        conn.close()
+
+    return render_template('company_form.html', company=company, group_id=group_id)
+
+
+@app.route('/company_get/<int:id>')
+def company_get(id):
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute("SELECT * FROM company_structure WHERE id = %s", (id,))
+    company = cursor.fetchone()
+    conn.close()
+    return jsonify(company)
+
+
+@app.route('/company_save', methods=['POST'])
+def company_save():
+    data = request.form
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    if data.get('id'):
+        cursor.execute("""
+            UPDATE company_structure SET company_name = %s, input_code = %s, parent_id = %s, next_inpection_date = %s
+            WHERE id = %s
+        """, (data['company_name'], data['input_code'], data.get('parent_id'), data.get('next_inpection_date'), data['id']))
+    else:
+        cursor.execute("""
+            INSERT INTO company_structure (group_id, company_name, input_code, parent_id, next_inpection_date)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (data['group_id'], data['company_name'], data['input_code'], data.get('parent_id'), data.get('next_inpection_date')))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Company saved successfully"})
+
+
+@app.route('/company_delete/<int:id>', methods=['DELETE'])
+def company_delete(id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM company_structure WHERE id = %s", (id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Company deleted"})
 
 
 #  dataset Data =====================================================================================================
-
 # dataset form ------------------------------------------------------------------------------------------------------
-@app.route('/dataset_form_browser/<string:dataset_type>')
-@app.route('/dataset_form_browser/<string:dataset_type>/<int:sheet_id>')
-def dataset_form_browser(dataset_type, sheet_id=1001):  # Default to 1001 if no sheet_id is provided
-    return render_template("dataset_form_browser.html", dataset_type=dataset_type, sheet_id=sheet_id)
+@app.route('/dataset_form_browser/<dataset_type>/<int:entity_id>')
+def dataset_form_browser(dataset_type, entity_id):
+    return render_template("dataset_form_browser.html",
+                           dataset_type=dataset_type,
+                           sheet_id=entity_id if dataset_type == "compliance" else None,
+                           corporate_id=entity_id if dataset_type == "corporate" else None,
+                           company_data_id=entity_id if dataset_type == "company_data" else None)
 
 
-@app.route('/dataset_form_tree/<string:dataset_type>/<int:the_id>', methods=['GET'])
-def dataset_form_tree(dataset_type, the_id):
+# --- Dataset Form Tree ---
+@app.route('/dataset_form_tree/<dataset_type>/<int:entity_id>')
+def dataset_form_tree(dataset_type, entity_id):
+    structure_table = dataset_structure_tables.get(dataset_type)
+    if not structure_table:
+        return jsonify({"error": "Invalid dataset type"}), 400
+
+    id_field = "sheet_id" if dataset_type == "compliance" \
+        else "corporate_id" if dataset_type == "corporate" \
+        else "company_data_id"
+
     conn = get_db_connection()
-    cursor = conn.cursor()
-
-    table_name = "compliance_sheet_structure" if dataset_type == "compliance" else "corporate_structure"
-    table_where = "sheet_id" if dataset_type == "compliance" else "corporate_id"
-
-    # Recursive Common Table Expression (CTE) to fetch hierarchy
-    query = f"""
-    WITH RECURSIVE dataset_tree AS (
-        SELECT id, {table_where}, input_code, parent_id, is_header, input_display, input_type, 
-        is_mandatory, select_value, is_upload
-        FROM {table_name}
-        WHERE {table_where} = %s AND parent_id IS NULL  -- Fetch only top-level parents
-
-        UNION ALL
-
-        SELECT d.id, d.{table_where}, d.input_code, d.parent_id, d.is_header, d.input_display, d.input_type, 
-        d.is_mandatory, d.select_value, d.is_upload
-        FROM {table_name} d
-        INNER JOIN dataset_tree dt ON d.parent_id = dt.id  -- Recursive relation
-    )
-    SELECT * FROM dataset_tree ORDER BY input_code;
-    """
-
-    print(query)
-    cursor.execute(query, (the_id,))
-    dataset = cursor.fetchall()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute(f"SELECT * FROM {structure_table} WHERE {id_field} = %s ORDER BY input_code", (entity_id,))
+    results = cursor.fetchall()
     conn.close()
-
-    return jsonify(dataset)
+    return jsonify(results)
 
 
 @app.route('/dataset_form_add_and_edit.html')
 def dataset_form_add_and_edit():
-    return render_template('dataset_form_add_and_edit.html')  # Ensure file is in 'templates/' folder
+    dataset_type = request.args.get('dataset_type')
+    sheet_id = request.args.get('sheet_id')
+    corporate_id = request.args.get('corporate_id')
+    company_data_id = request.args.get('company_data_id')
+    return render_template("dataset_form_add_and_edit.html",
+                           dataset_type=dataset_type,
+                           sheet_id=sheet_id,
+                           corporate_id=corporate_id,
+                           company_data_id=company_data_id)
 
 
-@app.route('/dataset_form_get_parent_sibling_info/<string:dataset_type>/<int:parent_id>/<int:sheet_id>', methods=['GET'])
-def dataset_form_get_parent_sibling_info(dataset_type, parent_id, sheet_id):
+# --- Get Parent & Sibling Info ---
+@app.route('/dataset_form_get_parent_sibling_info/<dataset_type>/<int:parent_id>/<int:entity_id>', methods=['GET'])
+def dataset_form_get_parent_sibling_info(dataset_type, parent_id, entity_id):
+    table_name = dataset_structure_tables.get(dataset_type)
+    if not table_name:
+        return jsonify({"error": "Invalid dataset type."}), 400
+
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    table_name = "compliance_sheet_structure" if dataset_type == "compliance" else "corporate_structure"
-    table_where = "sheet_id" if dataset_type == "compliance" else "corporate_id"
+    id_field = "sheet_id" if dataset_type == "compliance" \
+        else "corporate_id" if dataset_type == "corporate" \
+        else "company_data_id"
 
-    # Check if parent_id is NULL (Level 1)
-    if parent_id == 0:
-        # Get last input_code of Level 1 (same sheet_id, parent_id IS NULL)
-        cursor.execute(
-            f"SELECT input_code FROM {table_name} WHERE {table_where} = %s AND parent_id IS NULL "
-            "ORDER BY input_code DESC LIMIT 1",
-            (sheet_id,)
-        )
-        last_sibling = cursor.fetchone()
+    # Get parent info
+    cursor.execute(f"SELECT input_display FROM {table_name} WHERE id = %s", (parent_id,))
+    parent_row = cursor.fetchone()
+    parent_display = parent_row['input_display'] if parent_row else "Root"
 
-        next_code = str(int(last_sibling['input_code']) + 1) if last_sibling else "1"
-        return jsonify({
-            "parent_display": "Root",
-            "last_sibling_code": last_sibling['input_code'] if last_sibling else None,
-            "next_input_code": next_code
-        })
+    # Get last sibling code
+    cursor.execute(f"""
+        SELECT input_code FROM {table_name}
+        WHERE parent_id = %s AND {id_field} = %s
+        ORDER BY input_code DESC LIMIT 1
+    """, (parent_id, entity_id))
+    sibling = cursor.fetchone()
 
-    # If parent_id is NOT NULL (Adding a child)
-    else:
-        # Get Parent Display Name
-        cursor.execute(f"SELECT input_display FROM {table_name} WHERE id = %s", (parent_id,))
-        parent = cursor.fetchone()
+    def get_next_code(last_code):
+        if not last_code:
+            return "1"
+        parts = last_code.split('.')
+        parts[-1] = str(int(parts[-1]) + 1)
+        return '.'.join(parts)
 
-        # Get Last Input Code of Siblings (Same Parent, Same Sheet ID)
-        cursor.execute(
-            f"SELECT input_code FROM {table_name} WHERE parent_id = %s AND {table_where} = %s "
-            "ORDER BY input_code DESC LIMIT 1",
-            (parent_id, sheet_id)
-        )
-        last_sibling = cursor.fetchone()
+    last_code = sibling['input_code'] if sibling else None
+    next_code = get_next_code(last_code)
 
-        # Calculate Next Input Code (Child Level)
-        if last_sibling:
-            next_code = increment_last_segment(last_sibling['input_code'])
-        else:
-            cursor.execute(
-                f"SELECT input_code FROM {table_name} WHERE id = %s AND {table_where} = %s "
-                "ORDER BY input_code DESC LIMIT 1",
-                (parent_id, sheet_id)
-            )
-            last_sibling = cursor.fetchone()
-            next_code = last_sibling['input_code'] + ".1"
-
-        conn.close()
-
-        return jsonify({
-            "parent_display": parent['input_display'] if parent else None,
-            "last_sibling_code": last_sibling['input_code'] if last_sibling else None,
-            "next_input_code": next_code
-        })
+    conn.close()
+    return jsonify({
+        "parent_display": parent_display,
+        "last_sibling_code": last_code,
+        "next_input_code": next_code
+    })
 
 
-@app.route('/dataset_form_get_field/<string:dataset_type>/<int:field_id>', methods=['GET'])
-def dataset_form_get_field(dataset_type, field_id):
+# --- Get Single Field ---
+@app.route('/dataset_form_get_field/<dataset_type>/<int:field_id>', methods=['GET'])
+def get_field(dataset_type, field_id):
+    table_name = dataset_structure_tables.get(dataset_type)
+    if not table_name:
+        return jsonify({"error": "Invalid dataset type."}), 400
+
     conn = get_db_connection()
-    cursor = conn.cursor()
-
-    table_name = "compliance_sheet_structure" if dataset_type == "compliance" else "corporate_structure"
-
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute(f"SELECT * FROM {table_name} WHERE id = %s", (field_id,))
     field = cursor.fetchone()
     conn.close()
-
-    if not field:
-        return jsonify({"error": f"Field with id {field_id} not found"}), 404  # Handle missing data
-
-    if field:
-        return jsonify({
-            "id": field["id"],  # Access by column name, NOT index
-            "sheet_id": field["sheet_id"],
-            "input_code": field["input_code"],
-            "parent_id": field["parent_id"],
-            "is_header": field["is_header"],
-            "input_display": field["input_display"],
-            "input_type": field["input_type"],
-            "is_mandatory": field["is_mandatory"],
-            "select_value": field["select_value"],
-            "is_upload": field["is_upload"]
-        })
-    else:
-        return jsonify({"error": "Field not found"}), 404
+    return jsonify(field)
 
 
-@app.route('/dataset_form_add_field/<string:dataset_type>', methods=['POST'])
-def dataset_form_add_field(dataset_type):
+# --- Add New Field ---
+@app.route('/dataset_form_add_field/<dataset_type>', methods=['POST'])
+def add_field(dataset_type):
+    table_name = dataset_structure_tables.get(dataset_type)
+    if not table_name:
+        return jsonify({"error": "Invalid dataset type."}), 400
+
     data = request.json
+    id_field = "sheet_id" if dataset_type == "compliance" \
+        else "corporate_id" if dataset_type == "corporate" \
+        else "company_data_id"
+
     conn = get_db_connection()
     cursor = conn.cursor()
-
-    table_name = "compliance_sheet_structure" if dataset_type == "compliance" else "corporate_structure"
-    table_where = "sheet_id" if dataset_type == "compliance" else "corporate_id"
-
-    # Check if input_type is valid
-    if data['input_type'] not in VALID_INPUT_TYPES:
-        return jsonify({"error": f"Invalid input_type. Allowed values: {', '.join(VALID_INPUT_TYPES)}"}), 400
-
-    try:
-        cursor.execute(
-            f"INSERT INTO {table_name} ({table_where}, input_code, parent_id, is_header, "
-            "input_display, input_type, is_mandatory, select_value, is_upload) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
-            (data[table_where], data['input_code'], data['parent_id'], data['is_header'], data['input_display'],
-             data['input_type'], data['is_mandatory'], data.get('select_value'), data['is_upload'])
-        )
-        conn.commit()
-        new_id = cursor.fetchone()[0]
-        return jsonify({"message": "Field added successfully!", "id": new_id}), 201
-
-    except psycopg2.errors.UniqueViolation:
-        conn.rollback()
-        return jsonify({"error": "Duplicate sheet_id and input_code detected!"}), 400
-
-    except Exception as e:
-        conn.rollback()
-        return jsonify({"error": str(e)}), 500
-
-    finally:
-        conn.close()
-
-
-@app.route('/dataset_form_edit_field/<string:dataset_type>/<int:field_id>', methods=['PUT'])
-def dataset_form_edit_field(dataset_type, field_id):
-    data = request.json
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    table_name = "compliance_sheet_structure" if dataset_type == "compliance" else "corporate_structure"
-    table_where = "sheet_id" if dataset_type == "compliance" else "corporate_id"
-
-    try:
-        cursor.execute(
-            f"UPDATE {table_name} SET {table_where}=%s, input_code=%s, is_header=%s, "
-            "input_display=%s, input_type=%s, "
-            "is_mandatory=%s, select_value=%s, is_upload=%s WHERE id=%s",
-            (data[table_where], data['input_code'], data['is_header'], data['input_display'], data['input_type'],
-             data['is_mandatory'], data.get('select_value'), data['is_upload'], field_id)
-        )
-        conn.commit()
-        return jsonify({"message": "Field updated successfully!"})
-
-    except Exception as e:
-        conn.rollback()
-        return jsonify({"error": str(e)}), 500
-
-    finally:
-        conn.close()
-
-
-@app.route('/dataset_form_delete_field/<string:dataset_type>/<int:field_id>', methods=['DELETE'])
-def dataset_form_delete_field(dataset_type, field_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    table_name = "compliance_sheet_structure" if dataset_type == "compliance" else "corporate_structure"
-
-    try:
-        cursor.execute(f"DELETE FROM {table_name} WHERE id = %s", (field_id,))
-        conn.commit()
-        return jsonify({"message": "Field deleted successfully!"})
-
-    except Exception as e:
-        conn.rollback()
-        return jsonify({"error": str(e)}), 500
-
-    finally:
-        conn.close()
-
-
-# dataset Sheet Data -------------------------------------------------------------------------------------------------
-
-@app.route('/dataset_get_compliance_sheets', methods=['GET'])
-def dataset_get_compliance_sheets():
-    conn = get_db_connection()
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cursor.execute("SELECT id, sheet_description FROM compliance_sheet_browse ORDER BY sheet_description;")
-    compliance_sheets = cursor.fetchall()
-
+    cursor.execute(f"""
+        INSERT INTO {table_name}
+        ({id_field}, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (
+        data.get(id_field), data['input_code'], data.get('parent_id'), data['is_header'],
+        data['input_display'], data['input_type'], data['is_mandatory'], data['select_value'], data['is_upload']
+    ))
+    conn.commit()
     conn.close()
-    return jsonify(compliance_sheets)
+    return jsonify({"message": "Field added successfully."})
 
 
-@app.route('/dataset_data_input/<string:dataset_type>/<int:sheet_id>', methods=['GET'])
-@app.route('/dataset_data_input/<string:dataset_type>/<int:sheet_id>/<string:input_code>', methods=['GET'])
-def dataset_data_input(dataset_type, sheet_id, input_code=None):
+# --- Edit Existing Field ---
+@app.route('/dataset_form_edit_field/<dataset_type>/<int:field_id>', methods=['PUT'])
+def edit_field(dataset_type, field_id):
+    table_name = dataset_structure_tables.get(dataset_type)
+    if not table_name:
+        return jsonify({"error": "Invalid dataset type."}), 400
+
+    data = request.json
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(f"""
+        UPDATE {table_name} SET
+            input_code = %s,
+            input_display = %s,
+            input_type = %s,
+            is_mandatory = %s,
+            select_value = %s,
+            is_upload = %s,
+            is_header = %s
+        WHERE id = %s
+    """, (
+        data['input_code'], data['input_display'], data['input_type'], data['is_mandatory'],
+        data['select_value'], data['is_upload'], data['is_header'], field_id
+    ))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Field updated successfully."})
+
+
+# --- Delete Field ---
+@app.route('/delete_field/<int:field_id>', methods=['DELETE'])
+def delete_field(field_id):
+    # Generic delete from any structure table based on ID (assuming unique across all)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    for table in dataset_structure_tables.values():
+        cursor.execute(f"DELETE FROM {table} WHERE id = %s", (field_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Field deleted successfully."})
+
+
+# --- Dataset Input Data Retrieval ---
+@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>', defaults={'input_code': None})
+@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>/<input_code>')
+def dataset_data_input(dataset_type, entity_id, input_code):
     return render_template("dataset_data_input.html",
-                           dataset_type=dataset_type, sheet_id=sheet_id, input_code=input_code)
+                           dataset_type=dataset_type,
+                           sheet_id=entity_id if dataset_type == "compliance" else None,
+                           corporate_id=entity_id if dataset_type == "corporate" else None,
+                           company_data_id=entity_id if dataset_type == "company_data" else None,
+                           input_code=input_code)
 
 
-@app.route('/dataset_data_input_get_dataset_structure/<string:dataset_type>/<int:the_id>', methods=['GET'])
-@app.route('/dataset_data_input_get_dataset_structure/<string:dataset_type>/<int:the_id>/<string:input_code>', methods=['GET'])
-def dataset_data_input_get_dataset_structure(dataset_type, the_id, input_code=None):
+@app.route('/dataset_data_input_get_dataset_structure/<dataset_type>/<int:entity_id>', defaults={'input_code': None})
+@app.route('/dataset_data_input_get_dataset_structure/<dataset_type>/<int:entity_id>/<input_code>')
+def dataset_data_input_get_dataset_structure(dataset_type, entity_id, input_code):
+    structure_table = dataset_structure_tables.get(dataset_type)
+    if not structure_table:
+        return jsonify([])
+
+    id_field = "sheet_id" if dataset_type == "compliance" \
+        else "corporate_id" if dataset_type == "corporate" \
+        else "company_data_id"
+
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    table_name = "compliance_sheet_structure" if dataset_type == "compliance" else "corporate_structure"
-    table_where = "sheet_id" if dataset_type == "compliance" else "corporate_id"
 
     if input_code:
-        # Fetch only the requested section
         cursor.execute(f"""
-            WITH RECURSIVE dataset_tree AS (
-                SELECT * FROM {table_name} WHERE {table_where} = %s AND input_code = %s
+            WITH RECURSIVE tree AS (
+                SELECT * FROM {structure_table} WHERE {id_field} = %s AND input_code = %s
                 UNION ALL
-                SELECT ds.* FROM {table_name} ds
-                INNER JOIN dataset_tree dt ON ds.parent_id = dt.id
+                SELECT s.* FROM {structure_table} s
+                INNER JOIN tree t ON s.parent_id = t.id
             )
-            SELECT * FROM dataset_tree ORDER BY input_code ASC
-        """, (the_id, input_code))
+            SELECT * FROM tree ORDER BY input_code
+        """, (entity_id, input_code))
     else:
-        # Fetch the entire dataset
-        cursor.execute(f"""
-            SELECT * FROM {table_name} WHERE {table_where} = %s ORDER BY input_code ASC
-        """, (the_id,))
+        cursor.execute(f"SELECT * FROM {structure_table} WHERE {id_field} = %s ORDER BY input_code", (entity_id,))
 
-    dataset = cursor.fetchall()
+    results = cursor.fetchall()
     conn.close()
-    return jsonify(dataset)
+    return jsonify(results)
 
 
-@app.route('/dataset_data_input_submit_form/<string:dataset_type>', methods=['POST'])
+# --- Dataset Input Form Submission ---
+@app.route('/dataset_data_input_submit_form/<dataset_type>', methods=['POST'])
 def dataset_data_input_submit_form(dataset_type):
-    form_data = request.form.to_dict(flat=False)  # Get form data
-    the_id = request.args.get('the_id')  # This should be checked dynamically
+    form_data = request.form.to_dict(flat=False)
+    entry_table = dataset_entries_tables.get(dataset_type)
+    if not entry_table:
+        return jsonify({"error": "Invalid dataset type."}), 400
+
+    entity_id = request.args.get('sheet_id') or request.args.get('corporate_id') or request.args.get('group_id')
+
+    id_field = "sheet_id" if dataset_type == "compliance" \
+        else "corporate_id" if dataset_type == "corporate" \
+        else "company_data_id"
 
     conn = get_db_connection()
     cursor = conn.cursor()
+    now = datetime.now()
 
-    table_name = "compliance_sheet_structure" if dataset_type == "compliance" else "corporate_structure"
-    table_where = "sheet_id" if dataset_type == "compliance" else "corporate_id"
+    # Get structure for this entity to know which fields are uploads
+    structure_table = dataset_structure_tables.get(dataset_type)
+    cursor.execute(f"SELECT input_code, is_upload FROM {structure_table} WHERE {id_field} = %s", (entity_id,))
+    structure_info = {row[0]: row[1] for row in cursor.fetchall()}
 
-    for input_code, values in form_data.items():
-        value = values[0]  # Extract first value (for text inputs)
-        cursor.execute(f"""
-            INSERT INTO {table_name} ({table_where}, input_code, input_value)
-            VALUES (%s, %s, %s)
-        """, (the_id, input_code, value))
+    for key, values in form_data.items():
+        value = values[0]
+        if any(key.endswith(suffix) for suffix in ["_is_original", "_is_copy", "_next_due_date", "_side_note"]):
+            continue  # handled below
+        input_code = key
+
+        # Related metadata for uploads
+        is_original = form_data.get(f"{input_code}_is_original", ["false"])[0] == "on"
+        is_copy = form_data.get(f"{input_code}_is_copy", ["false"])[0] == "on"
+        next_due_date = form_data.get(f"{input_code}_next_due_date", [None])[0]
+        side_note = form_data.get(f"{input_code}_side_note", [""])[0]
+
+        if structure_info.get(input_code):  # only for upload-enabled fields
+            cursor.execute(f"""
+                INSERT INTO {entry_table} 
+                ({id_field}, input_code, value, is_original, is_copy, next_due_date, side_note, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (entity_id, input_code, value, is_original, is_copy, next_due_date, side_note, now))
+        else:
+            cursor.execute(f"""
+                INSERT INTO {entry_table} ({id_field}, input_code, value, created_at)
+                VALUES (%s, %s, %s, %s)
+            """, (entity_id, input_code, value, now))
 
     conn.commit()
     conn.close()
-
     return jsonify({"message": "Data submitted successfully!"})
 
-#  Main Application ===================================================================================================
+
+# --- Optional API for managing company_structure ---
+@app.route('/company_structure_list/<int:group_id>')
+def company_structure_list(group_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute("""
+        SELECT id, group_id, company_name, input_code, parent_id, next_inpection_date
+        FROM company_structure
+        WHERE group_id = %s
+        ORDER BY input_code
+    """, (group_id,))
+    companies = cursor.fetchall()
+    conn.close()
+    return jsonify(companies)
 
 
 if __name__ == '__main__':
