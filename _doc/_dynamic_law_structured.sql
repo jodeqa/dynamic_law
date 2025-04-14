@@ -99,7 +99,8 @@ CREATE TABLE company_data_structure (
     select_value TEXT,
     is_upload BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW(),
-    CONSTRAINT unique_template_input UNIQUE (template_name, input_code)
+    CONSTRAINT unique_company_data_input UNIQUE (company_data_id, input_code),
+    FOREIGN KEY (parent_id) REFERENCES company_data_structure(id) ON DELETE CASCADE
 );
 
 
@@ -108,7 +109,7 @@ CREATE TABLE company_data_structure (
 CREATE TABLE company_template_mapping (
     id SERIAL PRIMARY KEY,
     company_id INT NOT NULL REFERENCES company_structure(id),
-    company_data_id INT NOT NULL,  -- same as in company_data_structure
+    company_data_id INT NOT NULL REFERENCES company_data_browse(id),
     compliance_sheet_id INT REFERENCES compliance_sheet_browse(id),
     created_at TIMESTAMP DEFAULT NOW()
 );

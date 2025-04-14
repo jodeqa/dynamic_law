@@ -181,9 +181,11 @@ def dataset_form_tree(dataset_type, entity_id):
     if not structure_table:
         return jsonify({"error": "Invalid dataset type"}), 400
 
-    id_field = "sheet_id" if dataset_type == "compliance" \
-        else "corporate_id" if dataset_type == "corporate" \
+    id_field = (
+        "sheet_id" if dataset_type == "compliance"
+        else "corporate_id" if dataset_type == "corporate"
         else "company_data_id"
+    )
 
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -216,9 +218,11 @@ def dataset_form_get_parent_sibling_info(dataset_type, parent_id, entity_id):
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    id_field = "sheet_id" if dataset_type == "compliance" \
-        else "corporate_id" if dataset_type == "corporate" \
+    id_field = (
+        "sheet_id" if dataset_type == "compliance"
+        else "corporate_id" if dataset_type == "corporate"
         else "company_data_id"
+    )
 
     # Get parent info
     cursor.execute(f"SELECT input_display FROM {table_name} WHERE id = %s", (parent_id,))
@@ -274,9 +278,11 @@ def add_field(dataset_type):
         return jsonify({"error": "Invalid dataset type."}), 400
 
     data = request.json
-    id_field = "sheet_id" if dataset_type == "compliance" \
-        else "corporate_id" if dataset_type == "corporate" \
+    id_field = (
+        "sheet_id" if dataset_type == "compliance"
+        else "corporate_id" if dataset_type == "corporate"
         else "company_data_id"
+    )
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -355,9 +361,11 @@ def dataset_data_input_get_dataset_structure(dataset_type, entity_id, input_code
     if not structure_table:
         return jsonify([])
 
-    id_field = "sheet_id" if dataset_type == "compliance" \
-        else "corporate_id" if dataset_type == "corporate" \
+    id_field = (
+        "sheet_id" if dataset_type == "compliance"
+        else "corporate_id" if dataset_type == "corporate"
         else "company_data_id"
+    )
 
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -388,11 +396,13 @@ def dataset_data_input_submit_form(dataset_type):
     if not entry_table:
         return jsonify({"error": "Invalid dataset type."}), 400
 
-    entity_id = request.args.get('sheet_id') or request.args.get('corporate_id') or request.args.get('group_id')
+    entity_id = request.args.get('sheet_id') or request.args.get('corporate_id') or request.args.get('company_data_id')
 
-    id_field = "sheet_id" if dataset_type == "compliance" \
-        else "corporate_id" if dataset_type == "corporate" \
+    id_field = (
+        "sheet_id" if dataset_type == "compliance"
+        else "corporate_id" if dataset_type == "corporate"
         else "company_data_id"
+    )
 
     conn = get_db_connection()
     cursor = conn.cursor()
