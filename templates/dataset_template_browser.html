@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Template Browser</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
+</head>
+<body class="p-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 id="templateTitle">Template Browser</h2>
+    <button class="btn btn-primary" id="btnAddTemplate">+ Add New Template</button>
+  </div>
+  <table id="templateTable" class="display" style="width:100%">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Description</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+  </table>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const datasetType = params.get("dataset_type");
+
+    let fetchUrl = "";
+    let title = "";
+    let newTemplateUrl = "";
+
+    if (datasetType === "company_data") {
+      fetchUrl = "/company_data_browse_data";
+      title = "Company Data Templates";
+      newTemplateUrl = "/add_company_data_template";
+    } else if (datasetType === "compliance") {
+      fetchUrl = "/compliance_sheet_browse_data";
+      title = "Compliance Sheet Templates";
+      newTemplateUrl = "/add_compliance_sheet_template";
+    } else {
+      alert("Invalid dataset type");
+    }
+
+    document.getElementById("templateTitle").innerText = title;
+
+    document.getElementById("btnAddTemplate").addEventListener("click", () => {
+      window.open(newTemplateUrl, "_blank", "width=600,height=400");
+    });
+
+    $(document).ready(function () {
+      $('#templateTable').DataTable({
+        ajax: fetchUrl,
+        columns: [
+          { data: 'id' },
+          { data: datasetType === 'company_data' ? 'company_data_search_tag' : 'sheet_search_tag' },
+          { data: datasetType === 'company_data' ? 'company_data_description' : 'sheet_description' },
+          { data: 'created_at' },
+          {
+            data: null,
+            render: function (row) {
+              return `<a href='/dataset_form_browser/${datasetType}/${row.id}' class='btn btn-sm btn-info'>Edit Structure</a>`;
+            }
+          }
+        ]
+      });
+    });
+  </script>
+
+</body>
+</html>
+{% endblock %}

@@ -34,7 +34,7 @@ CREATE TABLE compliance_sheet_structure (
     is_upload BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW(),
     CONSTRAINT unique_sheet_input UNIQUE (sheet_id, input_code),
-    FOREIGN KEY (parent_id) REFERENCES dataset_structure(id) ON DELETE CASCADE
+    FOREIGN KEY (parent_id) REFERENCES compliance_sheet_structure(id) ON DELETE CASCADE
 );
 
 
@@ -71,7 +71,7 @@ CREATE TABLE company_structure (
     company_name TEXT NOT NULL,
     input_code VARCHAR(50) NOT NULL,  -- COA-style tree code
     parent_id INT REFERENCES company_structure(id) ON DELETE CASCADE,
-    next_inpection_date DATE,
+    next_inspection_date DATE,
     created_at TIMESTAMP DEFAULT NOW(),
     CONSTRAINT unique_company_tree UNIQUE (group_id, input_code)
 );
@@ -82,7 +82,8 @@ CREATE TABLE company_data_browse (
     id SERIAL PRIMARY KEY,
     company_data_search_tag VARCHAR(50) NOT NULL,
     company_data_description TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMEST
+    AMP DEFAULT NOW()
 );
 
 
@@ -111,8 +112,11 @@ CREATE TABLE company_template_mapping (
     company_id INT NOT NULL REFERENCES company_structure(id),
     company_data_id INT NOT NULL REFERENCES company_data_browse(id),
     compliance_sheet_id INT REFERENCES compliance_sheet_browse(id),
+    year SMALLINT NOT NULL,  -- enables multiple entries over time
+    link_description TEXT,
     created_at TIMESTAMP DEFAULT NOW()
 );
+
 
 
 -- Step 10: Create company_data_entries

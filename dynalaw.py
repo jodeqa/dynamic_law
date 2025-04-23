@@ -1,7 +1,9 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, send_file
 import psycopg2
 import psycopg2.extras
 from datetime import datetime
+import io
+import pdfkit
 
 app = Flask(__name__)
 
@@ -29,6 +31,11 @@ dataset_entries_tables = {
     "corporate": "corporate_entries",
     "company_data": "company_data_entries"
 }
+
+
+@app.route('/')
+def entrypoint():
+    return render_template('index.html')
 
 
 #  Corporate and Company Browser ====================================================================================
@@ -99,7 +106,7 @@ def company_tree_data(group_id):
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute("""
-        SELECT id, parent_id, input_code, company_name, next_inpection_date 
+        SELECT id, parent_id, input_code, company_name, next_inspection_date 
         FROM company_structure WHERE group_id = %s ORDER BY input_code
     """, (group_id,))
     companies = cursor.fetchall()
@@ -140,14 +147,22 @@ def company_save():
     cursor = conn.cursor()
     if data.get('id'):
         cursor.execute("""
-            UPDATE company_structure SET company_name = %s, input_code = %s, parent_id = %s, next_inpection_date = %s
+            UPDATE company_structure SET company_name = %s, input_code = %s, parent_id = %s, next_inspection_date = %s
             WHERE id = %s
-        """, (data['company_name'], data['input_code'], data.get('parent_id'), data.get('next_inpection_date'), data['id']))
+        """, (data['company_name'],
+              data['input_code'],
+              data.get('parent_id'),
+              data.get('next_inspection_date'),
+              data['id']))
     else:
         cursor.execute("""
-            INSERT INTO company_structure (group_id, company_name, input_code, parent_id, next_inpection_date)
+            INSERT INTO company_structure (group_id, company_name, input_code, parent_id, next_inspection_date)
             VALUES (%s, %s, %s, %s, %s)
-        """, (data['group_id'], data['company_name'], data['input_code'], data.get('parent_id'), data.get('next_inpection_date')))
+        """, (data['group_id'],
+              data['company_name'],
+              data['input_code'],
+              data.get('parent_id'),
+              data.get('next_inspection_date')))
     conn.commit()
     conn.close()
     return jsonify({"message": "Company saved successfully"})
@@ -448,7 +463,7 @@ def company_structure_list(group_id):
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute("""
-        SELECT id, group_id, company_name, input_code, parent_id, next_inpection_date
+        SELECT id, group_id, company_name, input_code, parent_id, next_inspection_date
         FROM company_structure
         WHERE group_id = %s
         ORDER BY input_code
@@ -456,6 +471,202 @@ def company_structure_list(group_id):
     companies = cursor.fetchall()
     conn.close()
     return jsonify(companies)
+
+
+# -------------------------
+# Compliance Sheet Assignments (Per Company)
+# -------------------------
+
+@app.route('/company_compliance_browser/<int:company_id>')
+def company_compliance_browser(company_id):
+    return render_template("company_compliance_browser.html", company_id=company_id)
+
+
+# List all compliance assignments for a company
+@app.route('/company_compliance_list/<int:company_id>')
+def company_compliance_list(company_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute("""
+        SELECT mapping.id, 
+               b.sheet_description, 
+               b.sheet_search_tag, 
+               mapping.year, 
+               mapping.created_at
+        FROM company_template_mapping mapping
+        JOIN compliance_sheet_browse b ON mapping.compliance_sheet_id = b.id
+        WHERE mapping.company_id = %s
+        ORDER BY mapping.year DESC, mapping.created_at DESC
+    """, (company_id,))
+    result = cursor.fetchall()
+    conn.close()
+    return jsonify({"data": result})  # ⚠️ THIS IS IMPORTANT FOR DATATABLES
+
+
+@app.route('/company_compliance_assign/<int:company_id>', methods=['POST'])
+def company_compliance_assign(company_id):
+    year = int(request.form.get("year"))
+    sheet_id = int(request.form.get("compliance_sheet_id"))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # Mark previous assignments as read-only for the same year
+    cur.execute("""
+        UPDATE company_template_mapping SET is_active = FALSE
+        WHERE company_id = %s AND year = %s
+    """, (company_id, year))
+
+    # Insert new active assignment
+    cur.execute("""
+        INSERT INTO company_template_mapping (company_id, compliance_sheet_id, year, is_active, created_at)
+        VALUES (%s, %s, %s, TRUE, NOW())
+    """, (company_id, sheet_id, year))
+    conn.close()
+    return redirect(f"/company_compliance_browser/{company_id}")
+
+
+# Get latest active assignment
+@app.route('/company_compliance_latest/<int:company_id>')
+def company_compliance_latest(company_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute("""
+        SELECT mapping.compliance_sheet_id AS sheet_id
+        FROM company_template_mapping mapping
+        WHERE mapping.company_id = %s
+        ORDER BY mapping.year DESC, mapping.created_at DESC
+        LIMIT 1
+    """, (company_id,))
+    result = cursor.fetchone()
+    conn.close()
+    return jsonify(result or {})  # Return empty object if None
+
+
+# Export to PDF
+@app.route('/company_compliance_pdf/<int:company_id>/<int:mapping_id>')
+def export_compliance_pdf(company_id, mapping_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cursor.execute("""
+        SELECT s.input_code, s.input_display, s.input_type, s.is_header, s.is_upload,
+               e.value, e.file_path
+        FROM company_template_mapping m
+        JOIN compliance_sheet_structure s ON s.sheet_id = m.compliance_sheet_id
+        LEFT JOIN compliance_sheet_entries e 
+            ON e.sheet_id = s.sheet_id AND e.input_code = s.input_code AND e.user_id = m.company_id
+        WHERE m.id = %s AND m.company_id = %s
+        ORDER BY s.input_code
+    """, (mapping_id, company_id))
+
+    data = cursor.fetchall()
+    conn.close()
+
+    html = render_template("pdf_compliance_export.html", fields=data)
+    config = pdfkit.configuration(wkhtmltopdf=r"C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe")
+    pdf = pdfkit.from_string(html, False, configuration=config)
+
+    return send_file(io.BytesIO(pdf), as_attachment=True,
+                     download_name="compliance_export.pdf", mimetype='application/pdf')
+
+
+# @app.route('/company_template_mapping_data/<int:company_id>')
+# def company_template_mapping_data(company_id):
+#     conn = get_db_connection()
+#     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+#     cursor.execute("""
+#         SELECT
+#             m.year,
+#             m.link_description,
+#             m.created_at,
+#             cs.sheet_description AS compliance_sheet_description,
+#             cd.company_data_description
+#         FROM company_template_mapping m
+#         LEFT JOIN compliance_sheet_browse cs ON m.compliance_sheet_id = cs.id
+#         LEFT JOIN company_data_browse cd ON m.company_data_id = cd.id
+#         WHERE m.company_id = %s
+#         ORDER BY m.year DESC
+#     """, (company_id,))
+#     data = cursor.fetchall()
+#     conn.close()
+#     return jsonify({"data": data})
+#
+#
+@app.route('/company_template_mapping_form', methods=['GET', 'POST'])
+def company_template_mapping_form():
+    company_id = request.args.get('company_id', type=int)
+    if request.method == 'POST':
+        compliance_sheet_id = request.form['compliance_sheet_id']
+        company_data_id = request.form['company_data_id']
+        year = request.form['year']
+        link_description = request.form.get('link_description', '')
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO 
+            company_template_mapping (company_id, compliance_sheet_id, company_data_id, year, link_description)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (company_id, compliance_sheet_id, company_data_id, year, link_description))
+        conn.commit()
+        conn.close()
+        return jsonify({"message": "Mapping saved"}), 200
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute("SELECT id, sheet_description FROM compliance_sheet_browse")
+    sheets = cursor.fetchall()
+    cursor.execute("SELECT id, company_data_description FROM company_data_browse")
+    templates = cursor.fetchall()
+    conn.close()
+
+    return render_template("company_template_mapping_form.html",
+                           company_id=company_id,
+                           sheets=sheets,
+                           templates=templates)
+
+
+@app.route('/dataset_template_browser.html')
+def template_browser():
+    dataset_type = request.args.get('dataset_type')
+    if dataset_type not in ['compliance', 'company_data']:
+        return "Invalid dataset type", 400
+    return render_template("dataset_template_browser.html", dataset_type=dataset_type)
+
+
+@app.route('/company_data_browse_data')
+def company_data_browse_data():
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute("SELECT id, company_data_search_tag, company_data_description, created_at "
+                   "FROM company_data_browse "
+                   "ORDER BY created_at DESC")
+    results = cursor.fetchall()
+    conn.close()
+    return jsonify({"data": results})
+
+
+@app.route('/compliance_sheet_browse_data')
+def compliance_sheet_browse_data():
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute("SELECT id, sheet_search_tag, sheet_description, created_at "
+                   "FROM compliance_sheet_browse "
+                   "ORDER BY created_at DESC")
+    results = cursor.fetchall()
+    conn.close()
+    return jsonify({"data": results})
+
+
+@app.route('/add_company_data_template')
+def add_company_data_template():
+    return render_template("company_data_template_form.html")
+
+
+@app.route('/add_compliance_sheet_template')
+def add_compliance_sheet_template():
+    return render_template("compliance_sheet_template_form.html")
 
 
 if __name__ == '__main__':

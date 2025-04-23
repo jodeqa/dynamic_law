@@ -1,3 +1,6 @@
+{% extends "base.html" %}
+{% block content %}
+
 <!-- company_browser.html -->
 <!DOCTYPE html>
 <html lang="en">
@@ -16,6 +19,21 @@
       <thead><tr><th>Code</th><th>Name</th><th>Next Inspection</th><th>Actions</th></tr></thead>
       <tbody></tbody>
     </table>
+  </div>
+
+    <!-- Modal for Compliance Management -->
+  <div class="modal fade" id="complianceModal" tabindex="-1" aria-labelledby="complianceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="complianceModalLabel">Compliance History</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <iframe id="complianceFrame" style="width:100%; height:600px; border:none;"></iframe>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -39,6 +57,7 @@
               <span class="float-end">
                 <button class="btn btn-sm btn-warning" onclick="openCompanyForm(${node.id})">Edit</button>
                 <button class="btn btn-sm btn-danger" onclick="deleteCompany(${node.id})">Delete</button>
+                <button class="btn btn-sm btn-info" onclick="openComplianceModal(${node.id})">Compliance</button>
               </span>
               ${build(node.id)}
             </li>`;
@@ -61,6 +80,9 @@
             <td>
               <button class="btn btn-sm btn-warning" onclick="openCompanyForm(${row.id})">Edit</button>
               <button class="btn btn-sm btn-danger" onclick="deleteCompany(${row.id})">Delete</button>
+<!--              <a class="btn btn-sm btn-dark" href="/company_template_mapping_form?company_id=${row.id}" target="_blank">Map Templates</a>-->
+              <button class="btn btn-sm btn-info" onclick="openComplianceModal(${row.id})">Compliance</button>
+              </a>
             </td>
           </tr>
         `;
@@ -112,8 +134,15 @@
       loadTree();
     }
 
+    function openComplianceModal(companyId) {
+      const iframe = document.getElementById("complianceFrame");
+      iframe.src = `/company_compliance_browser/${companyId}`;
+      new bootstrap.Modal(document.getElementById("complianceModal")).show();
+    }
+
     window.onload = loadTree;
   </script>
-
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+{% endblock %}
