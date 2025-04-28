@@ -37,40 +37,97 @@
     let newTemplateUrl = "";
 
     if (datasetType === "company_data") {
-      fetchUrl = "/company_data_browse_data";
       title = "Company Data Templates";
-      newTemplateUrl = "/add_company_data_template";
     } else if (datasetType === "compliance") {
-      fetchUrl = "/compliance_sheet_browse_data";
       title = "Compliance Sheet Templates";
-      newTemplateUrl = "/add_compliance_sheet_template";
     } else {
       alert("Invalid dataset type");
     }
 
     document.getElementById("templateTitle").innerText = title;
 
-    document.getElementById("btnAddTemplate").addEventListener("click", () => {
-      window.open(newTemplateUrl, "_blank", "width=600,height=400");
-    });
+    fetchUrl = `/dataset_template_browse_data/${datasetType}`;
+    newTemplateUrl = `/dataset_template_form/${datasetType}`;
 
     $(document).ready(function () {
       $('#templateTable').DataTable({
         ajax: fetchUrl,
         columns: [
           { data: 'id' },
-          { data: datasetType === 'company_data' ? 'company_data_search_tag' : 'sheet_search_tag' },
-          { data: datasetType === 'company_data' ? 'company_data_description' : 'sheet_description' },
+          { data: 'search_tag' },
+          { data: 'description' },
           { data: 'created_at' },
           {
             data: null,
             render: function (row) {
-              return `<a href='/dataset_form_browser/${datasetType}/${row.id}' class='btn btn-sm btn-info'>Edit Structure</a>`;
+              return `
+                <a class="btn btn-sm btn-primary" href="/dataset_form_browser/${datasetType}/${row.id}">Edit Structure</a>
+                <button class="btn btn-sm btn-success copy-btn" onclick="copyTemplate(this, ${row.id})">Copy Template</button>
+              `;
             }
           }
         ]
       });
+
+      $('#btnAddTemplate').click(() => {
+
+      const width = 600;
+      const height = 500;
+
+      // Get browser screen position
+      const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
+      const dualScreenTop = window.screenTop !== undefined ? window.screenTop : screen.top;
+
+      const windowWidth = window.innerWidth
+        ? window.innerWidth
+        : document.documentElement.clientWidth
+        ? document.documentElement.clientWidth
+        : screen.width;
+      const windowHeight = window.innerHeight
+        ? window.innerHeight
+        : document.documentElement.clientHeight
+        ? document.documentElement.clientHeight
+        : screen.height;
+
+      const left = dualScreenLeft + (windowWidth - width) / 2;
+      const top = dualScreenTop + (windowHeight - height) / 2;
+
+      const features = `scrollbars=yes,resizable=yes,width=${width},height=${height},top=${top},left=${left}`;
+      const newWin = window.open(newTemplateUrl, '_blank', features);
+        const timer = setInterval(() => {
+          if (newWin.closed) {
+            clearInterval(timer);
+            $('#templateTable').DataTable().ajax.reload();
+          }
+        }, 500);
+      });
     });
+
+    function copyTemplate(button, templateId) {
+      if (!confirm('Copy this template?')) return;
+
+      button.disabled = true;
+      const oldText = button.innerHTML;
+      button.innerHTML = 'Copying...';
+
+      fetch(`/copy_template/${datasetType}/${templateId}`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          alert(data.message);
+          if (data.new_id) {
+            window.location.href = `/dataset_form_browser/${datasetType}/${data.new_id}`;
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          alert('Error copying template.');
+        })
+        .finally(() => {
+          button.disabled = false;
+          button.innerHTML = oldText;
+        });
+    }
+
   </script>
 
 </body>

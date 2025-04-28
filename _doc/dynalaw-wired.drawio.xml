@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="Electron" modified="2025-04-28T18:44:04.421Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.6.4 Chrome/124.0.6367.207 Electron/30.0.6 Safari/537.36" etag="m_jecPCAy8rwINE2ddUU" version="24.6.4" type="device">
+  <diagram name="Page-1" id="AJEd9_AMR3EYGdRBT2Op">
+    <mxGraphModel dx="441" dy="260" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-92" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-1" target="lKGRxM3Gb-VWGB0zRB8D-5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="260" y="115" />
+              <mxPoint x="260" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-93" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-1" target="lKGRxM3Gb-VWGB0zRB8D-6">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="260" y="115" />
+              <mxPoint x="260" y="480" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-94" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-1" target="lKGRxM3Gb-VWGB0zRB8D-7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="260" y="115" />
+              <mxPoint x="260" y="530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-1" value="Data" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="167.5" y="110" width="85" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-98" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-2" target="lKGRxM3Gb-VWGB0zRB8D-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-2" value="&lt;div&gt;@app.route(&#39;/&#39;)&lt;/div&gt;&lt;div&gt;def entrypoint()&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" width="90" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-95" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-3" target="lKGRxM3Gb-VWGB0zRB8D-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="index.html" link="index.html" id="lKGRxM3Gb-VWGB0zRB8D-3">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+            <mxGeometry x="160" y="10" width="100" height="30" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-97" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-4" target="lKGRxM3Gb-VWGB0zRB8D-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="base.html" link="base.html" id="lKGRxM3Gb-VWGB0zRB8D-4">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+            <mxGeometry x="160" y="60" width="100" height="30" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-37" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-5" target="lKGRxM3Gb-VWGB0zRB8D-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-5" value="Manage Corporate Data" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="280" y="150" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-6" value="Corporate Detail Data Template" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="460" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-7" value="Compliance Sheet Template" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="510" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-38" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-8" target="lKGRxM3Gb-VWGB0zRB8D-9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="@app.route(&#39;/corporate_group_browser&#39;)&#xa;def corporate_group_browser()" link="@app.route(&#39;/corporate_group_browser&#39;)&#xa;def corporate_group_browser()" id="lKGRxM3Gb-VWGB0zRB8D-8">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+            <mxGeometry x="420" y="150" width="230" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-39" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-9" target="lKGRxM3Gb-VWGB0zRB8D-10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="corporate_group_browser.html" link="corporate_group_browser.html" id="lKGRxM3Gb-VWGB0zRB8D-9">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+            <mxGeometry x="670" y="150" width="180" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-42" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-10" target="lKGRxM3Gb-VWGB0zRB8D-11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-43" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-10" target="lKGRxM3Gb-VWGB0zRB8D-13">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1090" y="170" />
+              <mxPoint x="1090" y="220" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-44" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-10" target="lKGRxM3Gb-VWGB0zRB8D-15">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="170" />
+              <mxPoint x="1100" y="220" />
+              <mxPoint x="1090" y="220" />
+              <mxPoint x="1090" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <UserObject label="@app.route(&#39;/corporate_group_data&#39;)&#xa;def corporate_group_data()" link="@app.route(&#39;/corporate_group_data&#39;)&#xa;def corporate_group_data()" id="lKGRxM3Gb-VWGB0zRB8D-10">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+            <mxGeometry x="870" y="150" width="210" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-46" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-11" target="lKGRxM3Gb-VWGB0zRB8D-12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="New" link="corporate_group_browser.html" id="lKGRxM3Gb-VWGB0zRB8D-11">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+            <mxGeometry x="1100" y="150" width="70" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="@app.route(&#39;/corporate_group_form&#39;, methods=[&#39;GET&#39;])&#xa;def corporate_group_form()" link="@app.route(&#39;/corporate_group_form&#39;, methods=[&#39;GET&#39;])&#xa;def corporate_group_form()" id="lKGRxM3Gb-VWGB0zRB8D-12">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+            <mxGeometry x="1190" y="150" width="340" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-47" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-13" target="lKGRxM3Gb-VWGB0zRB8D-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="Delete" link="corporate_group_browser.html" id="lKGRxM3Gb-VWGB0zRB8D-13">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+            <mxGeometry x="1100" y="200" width="70" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="@app.route(&#39;/corporate_group_delete/&lt;int:group_id&gt;&#39;, methods=[&#39;DELETE&#39;])&#xa;def corporate_group_delete(group_id)" link="@app.route(&#39;/corporate_group_delete/&lt;int:group_id&gt;&#39;, methods=[&#39;DELETE&#39;])&#xa;def corporate_group_delete(group_id)" id="lKGRxM3Gb-VWGB0zRB8D-14">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+            <mxGeometry x="1190" y="200" width="340" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-48" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-15" target="lKGRxM3Gb-VWGB0zRB8D-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="Companies" link="corporate_group_browser.html" id="lKGRxM3Gb-VWGB0zRB8D-15">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+            <mxGeometry x="1100" y="250" width="70" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-50" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-16" target="lKGRxM3Gb-VWGB0zRB8D-20">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="@app.route(&#39;/company_browser/&lt;int:group_id&gt;&#39;)&#xa;def company_browser(group_id)" link="@app.route(&#39;/company_browser/&lt;int:group_id&gt;&#39;)&#xa;def company_browser(group_id)" id="lKGRxM3Gb-VWGB0zRB8D-16">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+            <mxGeometry x="1190" y="250" width="340" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-51" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-17" target="lKGRxM3Gb-VWGB0zRB8D-19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="corporate_group_form.html" link="corporate_group_form.html" id="lKGRxM3Gb-VWGB0zRB8D-17">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+            <mxGeometry x="1550" y="150" width="180" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="@app.route(&#39;/corporate_group_save&#39;, methods=[&#39;POST&#39;])&#xa;def corporate_group_save()" link="@app.route(&#39;/corporate_group_save&#39;, methods=[&#39;POST&#39;])&#xa;def corporate_group_save()" id="lKGRxM3Gb-VWGB0zRB8D-19">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+            <mxGeometry x="1750" y="150" width="340" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-52" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-20" target="lKGRxM3Gb-VWGB0zRB8D-21">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="company_browser.html" link="company_browser.html" id="lKGRxM3Gb-VWGB0zRB8D-20">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+            <mxGeometry x="1550" y="250" width="180" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-54" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-21" target="lKGRxM3Gb-VWGB0zRB8D-22">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-55" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-21" target="lKGRxM3Gb-VWGB0zRB8D-24">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2100" y="270" />
+              <mxPoint x="2100" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-56" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-21" target="lKGRxM3Gb-VWGB0zRB8D-28">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2100" y="270" />
+              <mxPoint x="2100" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-57" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-21" target="lKGRxM3Gb-VWGB0zRB8D-29">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2100" y="270" />
+              <mxPoint x="2100" y="420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <UserObject label="@app.route(&#39;/company_tree_data/&lt;int:group_id&gt;&#39;)&#xa;def company_tree_data(group_id)" link="@app.route(&#39;/company_tree_data/&lt;int:group_id&gt;&#39;)&#xa;def company_tree_data(group_id)" id="lKGRxM3Gb-VWGB0zRB8D-21">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+            <mxGeometry x="1750" y="250" width="340" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-58" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-22" target="lKGRxM3Gb-VWGB0zRB8D-23">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="New" link="corporate_group_browser.html" id="lKGRxM3Gb-VWGB0zRB8D-22">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+            <mxGeometry x="2110" y="250" width="70" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-62" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-23" target="lKGRxM3Gb-VWGB0zRB8D-26">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="@app.route(&#39;/company_form.html&#39;)&#xa;def company_form()" link="@app.route(&#39;/company_form.html&#39;)&#xa;def company_form()" id="lKGRxM3Gb-VWGB0zRB8D-23">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+            <mxGeometry x="2200" y="250" width="340" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-59" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-24" target="lKGRxM3Gb-VWGB0zRB8D-25">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="Delete" link="corporate_group_browser.html" id="lKGRxM3Gb-VWGB0zRB8D-24">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+            <mxGeometry x="2110" y="300" width="70" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="@app.route(&#39;/company_delete/&lt;int:id&gt;&#39;, methods=[&#39;DELETE&#39;])&#xa;def company_delete(id)" link="@app.route(&#39;/company_delete/&lt;int:id&gt;&#39;, methods=[&#39;DELETE&#39;])&#xa;def company_delete(id)" id="lKGRxM3Gb-VWGB0zRB8D-25">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+            <mxGeometry x="2200" y="300" width="340" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-64" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" target="lKGRxM3Gb-VWGB0zRB8D-27">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2750" y="270" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <UserObject label="company_form.html" link="company_form.html" id="lKGRxM3Gb-VWGB0zRB8D-26">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+            <mxGeometry x="2560" y="250" width="180" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="@app.route(&#39;/company_save&#39;, methods=[&#39;POST&#39;])&#xa;def company_save()" link="@app.route(&#39;/company_save&#39;, methods=[&#39;POST&#39;])&#xa;def company_save()" id="lKGRxM3Gb-VWGB0zRB8D-27">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+            <mxGeometry x="2770" y="250" width="340" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-60" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-28" target="lKGRxM3Gb-VWGB0zRB8D-30">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2190" y="370" />
+              <mxPoint x="2190" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <UserObject label="Compliance" link="corporate_group_browser.html" id="lKGRxM3Gb-VWGB0zRB8D-28">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+            <mxGeometry x="2110" y="350" width="70" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-61" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-29" target="lKGRxM3Gb-VWGB0zRB8D-30">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2190" y="420" />
+              <mxPoint x="2190" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <UserObject label="Company&lt;br&gt;Data" link="corporate_group_browser.html" id="lKGRxM3Gb-VWGB0zRB8D-29">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+            <mxGeometry x="2110" y="400" width="70" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-63" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-30" target="lKGRxM3Gb-VWGB0zRB8D-32">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="@app.route(&#39;/company_template_browser/&lt;dataset_type&gt;/&lt;int:company_id&gt;&#39;)&#xa;def company_template_browser(dataset_type, company_id)" link="@app.route(&#39;/company_template_browser/&lt;dataset_type&gt;/&lt;int:company_id&gt;&#39;)&#xa;def company_template_browser(dataset_type, company_id)" id="lKGRxM3Gb-VWGB0zRB8D-30">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+            <mxGeometry x="2200" y="370" width="340" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-65" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" target="lKGRxM3Gb-VWGB0zRB8D-33">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2750" y="390" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <UserObject label="company_template_browser.html" link="company_template_browser.html" id="lKGRxM3Gb-VWGB0zRB8D-32">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+            <mxGeometry x="2560" y="370" width="190" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-66" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-33" target="lKGRxM3Gb-VWGB0zRB8D-34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-67" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-33" target="lKGRxM3Gb-VWGB0zRB8D-35">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3120" y="390" />
+              <mxPoint x="3120" y="440" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-82" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-33" target="lKGRxM3Gb-VWGB0zRB8D-74">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3120" y="390" />
+              <mxPoint x="3120" y="610" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-83" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-33" target="lKGRxM3Gb-VWGB0zRB8D-75">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3120" y="390" />
+              <mxPoint x="3120" y="660" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <UserObject label="@app.route(&#39;/company_template_list/&lt;dataset_type&gt;/&lt;int:company_id&gt;&#39;)&#xa;def company_template_list(dataset_type, company_id)" link="@app.route(&#39;/company_template_list/&lt;dataset_type&gt;/&lt;int:company_id&gt;&#39;)&#xa;def company_template_list(dataset_type, company_id)" id="lKGRxM3Gb-VWGB0zRB8D-33">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+            <mxGeometry x="2770" y="370" width="340" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-68" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-34" target="lKGRxM3Gb-VWGB0zRB8D-36">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="Assign New Template" link="corporate_group_browser.html" id="lKGRxM3Gb-VWGB0zRB8D-34">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+            <mxGeometry x="3130" y="370" width="70" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-86" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-35" target="lKGRxM3Gb-VWGB0zRB8D-72">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="Edit Latest Assigned" link="corporate_group_browser.html" id="lKGRxM3Gb-VWGB0zRB8D-35">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+            <mxGeometry x="3130" y="420" width="70" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-70" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-36" target="lKGRxM3Gb-VWGB0zRB8D-69">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="@app.route(&#39;/company_template_mapping_form&#39;, methods=[&#39;GET&#39;, &#39;POST&#39;])&#xa;def company_template_mapping_form()" link="@app.route(&#39;/company_template_mapping_form&#39;, methods=[&#39;GET&#39;, &#39;POST&#39;])&#xa;def company_template_mapping_form()" id="lKGRxM3Gb-VWGB0zRB8D-36">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+            <mxGeometry x="3220" y="370" width="420" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-49" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=-0.021;entryY=0.476;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-12" target="lKGRxM3Gb-VWGB0zRB8D-17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="company_template_mapping_form.html" link="company_template_mapping_form.html" id="lKGRxM3Gb-VWGB0zRB8D-69">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+            <mxGeometry x="3660" y="370" width="230" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-87" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-72" target="lKGRxM3Gb-VWGB0zRB8D-73">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="@app.route(&#39;/company_template_latest/&lt;dataset_type&gt;/&lt;int:company_id&gt;&#39;)&#xa;def company_template_latest(dataset_type, company_id)" link="@app.route(&#39;/company_template_latest/&lt;dataset_type&gt;/&lt;int:company_id&gt;&#39;)&#xa;def company_template_latest(dataset_type, company_id)" id="lKGRxM3Gb-VWGB0zRB8D-72">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+            <mxGeometry x="3220" y="420" width="420" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-78" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-73" target="lKGRxM3Gb-VWGB0zRB8D-76">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="@app.route(&#39;/dataset_data_input/&lt;dataset_type&gt;/&lt;int:entity_id&gt;&#39;, defaults={&#39;input_code&#39;: None})&#xa;@app.route(&#39;/dataset_data_input/&lt;dataset_type&gt;/&lt;int:entity_id&gt;/&lt;input_code&gt;&#39;)&#xa;def dataset_data_input(dataset_type, entity_id, input_code)" link="@app.route(&#39;/dataset_data_input/&lt;dataset_type&gt;/&lt;int:entity_id&gt;&#39;, defaults={&#39;input_code&#39;: None})&#xa;@app.route(&#39;/dataset_data_input/&lt;dataset_type&gt;/&lt;int:entity_id&gt;/&lt;input_code&gt;&#39;)&#xa;def dataset_data_input(dataset_type, entity_id, input_code)" id="lKGRxM3Gb-VWGB0zRB8D-73">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+            <mxGeometry x="3220" y="470" width="420" height="60" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-89" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-74" target="lKGRxM3Gb-VWGB0zRB8D-88">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3210" y="610" />
+              <mxPoint x="3210" y="630" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <UserObject label="Export PDF" link="corporate_group_browser.html" id="lKGRxM3Gb-VWGB0zRB8D-74">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+            <mxGeometry x="3130" y="590" width="70" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-91" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-75" target="lKGRxM3Gb-VWGB0zRB8D-88">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3210" y="660" />
+              <mxPoint x="3210" y="630" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <UserObject label="View" link="corporate_group_browser.html" id="lKGRxM3Gb-VWGB0zRB8D-75">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+            <mxGeometry x="3130" y="640" width="70" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-84" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-76" target="lKGRxM3Gb-VWGB0zRB8D-80">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="dataset_data_input.html" link="dataset_data_input.html" id="lKGRxM3Gb-VWGB0zRB8D-76">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+            <mxGeometry x="3660" y="480" width="230" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="lKGRxM3Gb-VWGB0zRB8D-85" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="lKGRxM3Gb-VWGB0zRB8D-80" target="lKGRxM3Gb-VWGB0zRB8D-81">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="@app.route(&#39;/dataset_data_input_get_dataset_structure/&lt;dataset_type&gt;/&lt;int:entity_id&gt;&#39;, defaults={&#39;input_code&#39;: None})&#xa;@app.route(&#39;/dataset_data_input_get_dataset_structure/&lt;dataset_type&gt;/&lt;int:entity_id&gt;/&lt;input_code&gt;&#39;)&#xa;def dataset_data_input_get_dataset_structure(dataset_type, entity_id, input_code)" link="@app.route(&#39;/dataset_data_input_get_dataset_structure/&lt;dataset_type&gt;/&lt;int:entity_id&gt;&#39;, defaults={&#39;input_code&#39;: None})&#xa;@app.route(&#39;/dataset_data_input_get_dataset_structure/&lt;dataset_type&gt;/&lt;int:entity_id&gt;/&lt;input_code&gt;&#39;)&#xa;def dataset_data_input_get_dataset_structure(dataset_type, entity_id, input_code)" id="lKGRxM3Gb-VWGB0zRB8D-80">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+            <mxGeometry x="3910" y="470" width="480" height="60" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="@app.route(&#39;/dataset_data_input_submit_form/&lt;dataset_type&gt;&#39;, methods=[&#39;POST&#39;])&#xa;def dataset_data_input_submit_form(dataset_type)" link="@app.route(&#39;/dataset_data_input_submit_form/&lt;dataset_type&gt;&#39;, methods=[&#39;POST&#39;])&#xa;def dataset_data_input_submit_form(dataset_type)" id="lKGRxM3Gb-VWGB0zRB8D-81">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+            <mxGeometry x="3910" y="540" width="480" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="&lt;div&gt;@app.route(&#39;/company_template_export_pdf/&amp;lt;dataset_type&amp;gt;/&amp;lt;int:company_id&amp;gt;/&amp;lt;int:mapping_id&amp;gt;&#39;)&lt;/div&gt;&lt;div&gt;def export_company_template_pdf(dataset_type, company_id, mapping_id)&lt;/div&gt;" link="@app.route(&#39;/company_template_export_pdf/&lt;dataset_type&gt;/&lt;int:company_id&gt;/&lt;int:mapping_id&gt;&#39;)&#xa;def export_company_template_pdf(dataset_type, company_id, mapping_id)" id="lKGRxM3Gb-VWGB0zRB8D-88">
+          <mxCell style="rounded=0;whiteSpace=wrap;html=1;align=left;" vertex="1" parent="1">
+            <mxGeometry x="3220" y="610" width="540" height="40" as="geometry" />
+          </mxCell>
+        </UserObject>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

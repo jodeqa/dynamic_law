@@ -1,0 +1,45 @@
+<!-- dataset_template_form.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Add New Template</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="p-4">
+  <h3>Add New {{ 'Company Data' if dataset_type == 'company_data' else 'Compliance Sheet' }} Template</h3>
+  <form onsubmit="saveTemplate(event)">
+    <div class="mb-3">
+      <label>Search Tag</label>
+      <input type="text" name="search_tag" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label>Description</label>
+      <textarea name="description" class="form-control" required></textarea>
+    </div>
+    <input type="hidden" id="datasetType" value="{{ dataset_type }}">
+    <button class="btn btn-success w-100">Save</button>
+  </form>
+
+  <script>
+    async function saveTemplate(event) {
+      event.preventDefault();
+      const datasetType = document.getElementById('datasetType').value;
+      const formData = new FormData(event.target);
+
+      const res = await fetch(`/dataset_template_save/${datasetType}`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await res.json();
+      if (result.id) {
+        window.opener.location.href = `/dataset_form_browser/${datasetType}/${result.id}`;
+        window.close();
+      } else {
+        alert(result.error || "Failed to save");
+      }
+    }
+  </script>
+</body>
+</html>

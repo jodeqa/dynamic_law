@@ -36,6 +36,21 @@
     </div>
   </div>
 
+  <!-- Modal for companyData Management -->
+  <div class="modal fade" id="companyDataModal" tabindex="-1" aria-labelledby="companyDataModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="companyDataModalLabel">Company Data History</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <iframe id="companyDataFrame" style="width:100%; height:600px; border:none;"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const groupId = {{ group_id }};
 
@@ -58,6 +73,7 @@
                 <button class="btn btn-sm btn-warning" onclick="openCompanyForm(${node.id})">Edit</button>
                 <button class="btn btn-sm btn-danger" onclick="deleteCompany(${node.id})">Delete</button>
                 <button class="btn btn-sm btn-info" onclick="openComplianceModal(${node.id})">Compliance</button>
+                <button class="btn btn-sm btn-info" onclick="openCompanyDataModal(${node.id})">Data</button>
               </span>
               ${build(node.id)}
             </li>`;
@@ -80,8 +96,8 @@
             <td>
               <button class="btn btn-sm btn-warning" onclick="openCompanyForm(${row.id})">Edit</button>
               <button class="btn btn-sm btn-danger" onclick="deleteCompany(${row.id})">Delete</button>
-<!--              <a class="btn btn-sm btn-dark" href="/company_template_mapping_form?company_id=${row.id}" target="_blank">Map Templates</a>-->
               <button class="btn btn-sm btn-info" onclick="openComplianceModal(${row.id})">Compliance</button>
+              <button class="btn btn-sm btn-info" onclick="openCompanyDataModal(${row.id})">Data</button>
               </a>
             </td>
           </tr>
@@ -127,7 +143,6 @@
       window.open(url, 'CompanyFormWindow', features);
     }
 
-
     async function deleteCompany(id) {
       if (!confirm('Delete this company?')) return;
       await fetch(`/company_delete/${id}`, { method: 'DELETE' });
@@ -136,8 +151,14 @@
 
     function openComplianceModal(companyId) {
       const iframe = document.getElementById("complianceFrame");
-      iframe.src = `/company_compliance_browser/${companyId}`;
+      iframe.src = `/company_template_browser/compliance/${companyId}`;
       new bootstrap.Modal(document.getElementById("complianceModal")).show();
+    }
+
+    function openCompanyDataModal(companyId) {
+      const iframe = document.getElementById("companyDataFrame");
+      iframe.src = `/company_template_browser/company_data/${companyId}`;   // <-- fix the URL here
+      new bootstrap.Modal(document.getElementById("companyDataModal")).show();
     }
 
     window.onload = loadTree;
