@@ -11,7 +11,7 @@
   <h2 id="page-title">Loading...</h2>
 
   <div class="mb-3">
-    <button class="btn btn-success" onclick="assignNewTemplate()">+ Assign New Template</button>
+<!--    <button class="btn btn-success" onclick="assignNewTemplate()">+ Assign New Template</button>-->
     <button class="btn btn-outline-primary" onclick="loadLatestEditable()">Edit Latest Assigned</button>
   </div>
 
@@ -56,37 +56,40 @@
       });
     });
 
-    function assignNewTemplate() {
-      const width = 600;
-      const height = 500;
+<!--    function assignNewTemplate() {-->
+<!--      const width = 600;-->
+<!--      const height = 500;-->
 
-      // Get browser screen position
-      const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
-      const dualScreenTop = window.screenTop !== undefined ? window.screenTop : screen.top;
+<!--      // Get browser screen position-->
+<!--      const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;-->
+<!--      const dualScreenTop = window.screenTop !== undefined ? window.screenTop : screen.top;-->
 
-      const windowWidth = window.innerWidth
-        ? window.innerWidth
-        : document.documentElement.clientWidth
-        ? document.documentElement.clientWidth
-        : screen.width;
-      const windowHeight = window.innerHeight
-        ? window.innerHeight
-        : document.documentElement.clientHeight
-        ? document.documentElement.clientHeight
-        : screen.height;
+<!--      const windowWidth = window.innerWidth-->
+<!--        ? window.innerWidth-->
+<!--        : document.documentElement.clientWidth-->
+<!--        ? document.documentElement.clientWidth-->
+<!--        : screen.width;-->
+<!--      const windowHeight = window.innerHeight-->
+<!--        ? window.innerHeight-->
+<!--        : document.documentElement.clientHeight-->
+<!--        ? document.documentElement.clientHeight-->
+<!--        : screen.height;-->
 
-      const left = dualScreenLeft + (windowWidth - width) / 2;
-      const top = dualScreenTop + (windowHeight - height) / 2;
+<!--      const left = dualScreenLeft + (windowWidth - width) / 2;-->
+<!--      const top = dualScreenTop + (windowHeight - height) / 2;-->
 
-      const features = `scrollbars=yes,resizable=yes,width=${width},height=${height},top=${top},left=${left}`;
-      window.open(`/company_template_mapping_form?company_id=${companyId}`, '_blank', features);
-    }
+<!--      const features = `scrollbars=yes,resizable=yes,width=${width},height=${height},top=${top},left=${left}`;-->
+<!--      window.open(`/company_template_mapping_form?company_id=${companyId}`, '_blank', features);-->
+<!--    }-->
 
     async function loadLatestEditable() {
       const res = await fetch(`/company_template_latest/${datasetType}/${companyId}`);
       const latest = await res.json();
-      if (latest && latest.sheet_id) {
-        window.open(`/dataset_data_input/${datasetType}/${latest.sheet_id}`, '_blank');
+
+      const entityId = latest.sheet_id || latest.data_id;  // 👈 fix here
+
+      if (entityId) {
+        window.open(`/dataset_data_input/${datasetType}/${entityId}`, '_blank');
       } else {
         alert("No active assignment found.");
       }

@@ -74,6 +74,7 @@
                 <button class="btn btn-sm btn-danger" onclick="deleteCompany(${node.id})">Delete</button>
                 <button class="btn btn-sm btn-info" onclick="openComplianceModal(${node.id})">Compliance</button>
                 <button class="btn btn-sm btn-info" onclick="openCompanyDataModal(${node.id})">Data</button>
+                <button class="btn btn-sm btn-outline-info" onclick="openMapping(${node.id})">Mapping</button>
               </span>
               ${build(node.id)}
             </li>`;
@@ -98,7 +99,7 @@
               <button class="btn btn-sm btn-danger" onclick="deleteCompany(${row.id})">Delete</button>
               <button class="btn btn-sm btn-info" onclick="openComplianceModal(${row.id})">Compliance</button>
               <button class="btn btn-sm btn-info" onclick="openCompanyDataModal(${row.id})">Data</button>
-              </a>
+              <button class="btn btn-sm btn-outline-info" onclick="openMapping(${row.id})">Mapping</button>
             </td>
           </tr>
         `;
@@ -159,6 +160,32 @@
       const iframe = document.getElementById("companyDataFrame");
       iframe.src = `/company_template_browser/company_data/${companyId}`;   // <-- fix the URL here
       new bootstrap.Modal(document.getElementById("companyDataModal")).show();
+    }
+
+    function openMapping(companyId) {
+      const width = 600;
+      const height = 500;
+
+      // Get browser screen position
+      const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
+      const dualScreenTop = window.screenTop !== undefined ? window.screenTop : screen.top;
+
+      const windowWidth = window.innerWidth
+        ? window.innerWidth
+        : document.documentElement.clientWidth
+        ? document.documentElement.clientWidth
+        : screen.width;
+      const windowHeight = window.innerHeight
+        ? window.innerHeight
+        : document.documentElement.clientHeight
+        ? document.documentElement.clientHeight
+        : screen.height;
+
+      const left = dualScreenLeft + (windowWidth - width) / 2;
+      const top = dualScreenTop + (windowHeight - height) / 2;
+
+      const features = `scrollbars=yes,resizable=yes,width=${width},height=${height},top=${top},left=${left}`;
+      window.open(`/company_template_mapping_browser/${companyId}`, '_blank', features);
     }
 
     window.onload = loadTree;

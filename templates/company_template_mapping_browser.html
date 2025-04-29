@@ -9,15 +9,34 @@
 </head>
 <body class="p-4">
   <h2>Company Template Assignments</h2>
+
+  <div class="d-flex justify-content-between mb-3">
+    <button class="btn btn-primary" onclick="assignNewTemplate()">+ Assign New Template</button>
+    <button class="btn btn-secondary" onclick="viewHistory()">View History</button>
+  </div>
+
   <table id="mappingTable" class="display" style="width:100%">
     <thead>
       <tr>
-        <th>Company</th>
-        <th>Template</th>
-        <th>Compliance Sheet</th>
         <th>Year</th>
+        <th>Company Data</th>
+        <th>Compliance Sheet</th>
         <th>Description</th>
-        <th>Actions</th>
+      </tr>
+    </thead>
+  </table>
+
+  <hr>
+
+  <h4 id="historyTitle" style="display:none;">Historical Mappings</h4>
+  <table id="historyTable" class="display" style="width:100%; display:none;">
+    <thead>
+      <tr>
+        <th>Year</th>
+        <th>Company Data</th>
+        <th>Compliance Sheet</th>
+        <th>Action</th>
+        <th>Action Time</th>
       </tr>
     </thead>
   </table>
@@ -25,24 +44,65 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
   <script>
+    const companyId = {{ company_id }};
+
     $(document).ready(function () {
       $('#mappingTable').DataTable({
-        ajax: '/company_template_mapping_list',
+        ajax: `/company_template_mapping_list/${companyId}`,
         columns: [
-          { data: 'company_name' },
+          { data: 'year' },
           { data: 'company_data_description' },
           { data: 'sheet_description' },
-          { data: 'year' },
-          { data: 'link_description' },
-          {
-            data: null,
-            render: function (row) {
-              return `<a href='/company_compliance_browser/${row.company_id}' class='btn btn-sm btn-info'>View</a>`;
-            }
-          }
+          { data: 'link_description' }
         ]
       });
     });
+
+    function assignNewTemplate() {
+      const width = 600;
+      const height = 500;
+
+      // Get browser screen position
+      const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
+      const dualScreenTop = window.screenTop !== undefined ? window.screenTop : screen.top;
+
+      const windowWidth = window.innerWidth
+        ? window.innerWidth
+        : document.documentElement.clientWidth
+        ? document.documentElement.clientWidth
+        : screen.width;
+      const windowHeight = window.innerHeight
+        ? window.innerHeight
+        : document.documentElement.clientHeight
+        ? document.documentElement.clientHeight
+        : screen.height;
+
+      const left = dualScreenLeft + (windowWidth - width) / 2;
+      const top = dualScreenTop + (windowHeight - height) / 2;
+
+      const features = `scrollbars=yes,resizable=yes,width=${width},height=${height},top=${top},left=${left}`;
+      window.open(`/company_template_mapping_form?company_id=${companyId}`, '_blank', features);
+    }
+
+    function viewHistory() {
+      $('#historyTitle').show();
+      $('#historyTable').show();
+
+      if (!$.fn.DataTable.isDataTable('#historyTable')) {
+        $('#historyTable').DataTable({
+          ajax: `/company_template_mapping_history/${companyId}`,
+          columns: [
+            { data: 'year' },
+            { data: 'company_data_description' },
+            { data: 'sheet_description' },
+            { data: 'action_type' },
+            { data: 'action_time' }
+          ]
+        });
+      } else {
+        $('#historyTable').DataTable().ajax.reload();
+      }
+    }
   </script>
 </body>
 </html>

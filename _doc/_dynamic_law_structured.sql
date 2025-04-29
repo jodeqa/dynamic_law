@@ -110,7 +110,7 @@ CREATE TABLE company_data_structure (
 CREATE TABLE company_template_mapping (
     id SERIAL PRIMARY KEY,
     company_id INT NOT NULL REFERENCES company_structure(id),
-    company_data_id INT NOT NULL REFERENCES company_data_browse(id),
+    company_data_id INT NULL REFERENCES company_data_browse(id),
     compliance_sheet_id INT REFERENCES compliance_sheet_browse(id),
     year SMALLINT NOT NULL,  -- enables multiple entries over time
     link_description TEXT,
@@ -118,8 +118,20 @@ CREATE TABLE company_template_mapping (
 );
 
 
-
 -- Step 10: Create company_data_entries
+CREATE TABLE company_template_mapping_history (
+    id SERIAL PRIMARY KEY,
+    company_id INT NOT NULL,
+    company_data_id INT,
+    compliance_sheet_id INT,
+    year SMALLINT,
+    link_description TEXT,
+    action VARCHAR(10) DEFAULT 'UPDATE', -- UPDATE/DELETE
+    action_time TIMESTAMP DEFAULT NOW()
+);
+
+
+-- Step 11: Create company_data_entries
 CREATE TABLE company_data_entries (
     id SERIAL PRIMARY KEY,
     company_id INT NOT NULL,
@@ -136,7 +148,7 @@ CREATE TABLE company_data_entries (
 );
 
 
--- Step 11:
+-- Step 12:
 CREATE TABLE compliance_sheet_entries_history (
     id SERIAL PRIMARY KEY,
     sheet_id INT NOT NULL,
@@ -154,7 +166,7 @@ CREATE TABLE compliance_sheet_entries_history (
 );
 
 
--- Step 12:
+-- Step 13:
 CREATE TABLE company_data_entries_history (
     id SERIAL PRIMARY KEY,
     company_data_id INT NOT NULL,
