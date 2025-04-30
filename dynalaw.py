@@ -1,3 +1,5 @@
+import uuid
+
 from flask import Flask, render_template, request, jsonify, send_file, flash, redirect
 import psycopg2
 import psycopg2.extras
@@ -189,28 +191,36 @@ def renumber_siblings(dataset_type, parent_id, entity_id):
 @app.route('/upload_file', methods=['POST'])
 def upload_file():
     """
-    Function: upload_file
-    Purpose: Handling Upload files, zip and password protected using ZIP_PASSWORD,and save it into folder UPLOAD_FOLDER.
-    Called from: dataset_data_input.html
+    Route: /upload_file
+    Purpose: Handle encrypted file upload using pyzipper (ZIP+password) only.
+             No database insert/update happens here — handled during full form submit.
+    Called from: dataset_data_input.html (JavaScript upload logic).
     """
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
-
-    file = request.files['file']
+    uploaded_file = request.files.get('file')
     input_code = request.form.get('input_code')
 
-    if not file or not input_code:
-        return jsonify({"error": "Missing file or input_code"}), 400
+    if not uploaded_file or uploaded_file.filename == '':
+        return jsonify({"error": "No file uploaded."}), 400
 
-    filename = secure_filename(file.filename)
-    zip_path = os.path.join(UPLOAD_FOLDER, f"{input_code}_{int(datetime.now().timestamp())}.zip")
+    filename = secure_filename(uploaded_file.filename)
+    unique_filename = f"{uuid.uuid4()}_{filename}"
+    temp_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+    uploaded_file.save(temp_path)
 
-    # Encrypt file using pyzipper
-    with pyzipper.AESZipFile(zip_path, 'w', compression=pyzipper.ZIP_DEFLATED, encryption=pyzipper.WZ_AES) as zf:
-        zf.setpassword(ZIP_PASSWORD.encode())
-        zf.writestr(filename, file.read())
+    # ZIP + Password Encrypt
+    zip_filename = f"{unique_filename}.zip"
+    zip_path = os.path.join(UPLOAD_FOLDER, zip_filename)
 
-    return jsonify({"message": "File uploaded and encrypted successfully.", "file": filename + ".zip"})
+    try:
+        with pyzipper.AESZipFile(zip_path, 'w', compression=pyzipper.ZIP_LZMA) as zf:
+            zf.setpassword(ZIP_PASSWORD.encode())
+            zf.setencryption(pyzipper.WZ_AES, nbits=256)
+            zf.write(temp_path, arcname=filename)
+        os.remove(temp_path)  # Remove original file after zipping
+    except Exception as e:
+        return jsonify({"error": f"Failed to encrypt file: {str(e)}"}), 500
+
+    return jsonify({"file_path": f"/uploaded_files/{zip_filename}"})
 
 
 @app.route('/download_file')
@@ -233,7 +243,7 @@ def download_file():
 
 # ROUTES =============================================================================================================
 # --- Entry Point ---
-@app.route('/', methods=['POST'])
+@app.route('/')
 def login():
     """
     Route: /
@@ -343,6 +353,9 @@ def dataset_data_input_get_dataset_structure(dataset_type, entity_id, input_code
         """, (entity_id, entity_id))
 
     results = cursor.fetchall()
+    for r in results:
+        r['is_upload'] = bool(r.get('is_upload'))  # Force it to True/False
+
     conn.close()
     return jsonify(results)
 

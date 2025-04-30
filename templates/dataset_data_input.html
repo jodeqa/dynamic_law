@@ -9,6 +9,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script>
+        window.datasetType = "{{ dataset_type }}";
+        window.entityId = "{{ sheet_id or corporate_id or company_data_id }}";
+
         async function loadDatasetInput() {
             const dataset_type = "{{ dataset_type }}";
             const inputCode = "{{ input_code }}" !== "None" ? "{{ input_code }}" : null;
@@ -100,11 +103,13 @@
                                                  </div>`;
                                     });
                                 }
-                            } else if (item.is_upload) {
-                                html += `<input type="file" class="form-control" name="${item.input_code}" onchange="handleFileUpload('${item.input_code}', this)">
-                                            <small id="${item.input_code}_status" class="text-success d-block mt-1"></small>
-                                            <fieldset id="meta_${item.input_code}" class="border p-3 bg-light rounded mt-2 d-none">
-                                                <legend class="float-none w-auto fs-6 text-muted">Document Info</legend>
+                            } else if (String(item.is_upload).toLowerCase() === 'true' || item.is_upload === 1 || item.is_upload === true) {
+                                html += `<!-- File upload block -->`;
+                                html += `<input type="file" class="form-control" name="${item.input_code}" onchange="handleFileUpload('${item.input_code}', this); toggleMeta('${item.input_code}')">`;
+<!--                                html += `<input type="file" class="form-control" name="${item.input_code}" >`;-->
+                                html += `<small id="${item.input_code}_status" class="text-success d-block mt-1"></small>`;
+                                html += `<fieldset id="meta_${item.input_code}" class="border p-3 bg-light rounded mt-2 d-none">
+                                            <legend class="float-none w-auto fs-6 text-muted">Document Info</legend>
                                                 <div class="row g-2 align-items-center">
                                                     <div class="col-md-2 form-check">
                                                         <input class="form-check-input" type="checkbox" name="${item.input_code}_is_original" id="${item.input_code}_original">
@@ -148,7 +153,6 @@
                             html += `</div>`;
                         }
                     });
-
                     return html;
                 }
 
@@ -192,6 +196,8 @@
             const formData = new FormData();
             formData.append('file', file);
             formData.append('input_code', inputCode);
+            formData.append('entity_id', entityId);
+            formData.append('dataset_type', datasetType);
 
             fetch('/upload_file', {
                 method: 'POST',
