@@ -1,18 +1,29 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, flash, redirect
 import psycopg2
 import psycopg2.extras
-from datetime import datetime
-import io
+
 import pdfkit
+import pyzipper
+from werkzeug.utils import secure_filename
+
+from datetime import datetime
+import os
+import io
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 
-# Database configuration (example only)
-DB_HOST = 'localhost'
-DB_NAME = 'dynamic_law'
-DB_USER = 'postgres'
-DB_PASSWORD = 'P@ssw0rd'
-DB_PORT = 5432
+# load Config
+DB_HOST = os.getenv('DB_HOST')
+DB_NAME = os.getenv('DB_NAME')
+DB_USER = os.getenv('DB_USER')
+DB_PASSWORD = os.getenv('DB_PASSWORD')
+DB_PORT = os.getenv('DB_PORT')
+UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER')
+ZIP_PASSWORD = os.getenv('ZIP_PASSWORD')
 
 # --- Dataset Type Mapping ---
 dataset_structure_tables = {
@@ -175,14 +186,85 @@ def renumber_siblings(dataset_type, parent_id, entity_id):
     conn.close()
 
 
+@app.route('/upload_file', methods=['POST'])
+def upload_file():
+    """
+    Function: upload_file
+    Purpose: Handling Upload files, zip and password protected using ZIP_PASSWORD,and save it into folder UPLOAD_FOLDER.
+    Called from: dataset_data_input.html
+    """
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+
+    file = request.files['file']
+    input_code = request.form.get('input_code')
+
+    if not file or not input_code:
+        return jsonify({"error": "Missing file or input_code"}), 400
+
+    filename = secure_filename(file.filename)
+    zip_path = os.path.join(UPLOAD_FOLDER, f"{input_code}_{int(datetime.now().timestamp())}.zip")
+
+    # Encrypt file using pyzipper
+    with pyzipper.AESZipFile(zip_path, 'w', compression=pyzipper.ZIP_DEFLATED, encryption=pyzipper.WZ_AES) as zf:
+        zf.setpassword(ZIP_PASSWORD.encode())
+        zf.writestr(filename, file.read())
+
+    return jsonify({"message": "File uploaded and encrypted successfully.", "file": filename + ".zip"})
+
+
+@app.route('/download_file')
+def download_file():
+    """
+    Function: download_file
+    Purpose: Handling extract file tobe download from zip protected password, then Download File.
+    Called from: dataset_data_input.html
+    """
+    file_path = request.args.get('path')
+    if not file_path or not os.path.exists(file_path):
+        return "File not found", 404
+
+    # Decrypt and stream the file content
+    with pyzipper.AESZipFile(file_path) as zf:
+        zf.setpassword(ZIP_PASSWORD.encode())
+        for name in zf.namelist():
+            return send_file(io.BytesIO(zf.read(name)), download_name=name)
+
+
 # ROUTES =============================================================================================================
 # --- Entry Point ---
-@app.route('/')
-def index():
+@app.route('/', methods=['POST'])
+def login():
     """
     Route: /
-    Purpose: Displays landing page with logo and welcome.
+    Purpose: Displays login page.
     Called from: Browser default load.
+    Calls: login.html
+    """
+    return render_template('login.html')
+
+
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    """
+    Route: /forgot_password
+    Purpose: Displays forgot password page for user to request reset password.
+    Called from: login.html.
+    Calls: tba
+    """
+    if request.method == 'POST':
+        # Just show a flash for now
+        flash("Password reset link has been sent to your email.", "info")
+        return redirect('/')
+    return render_template('forgot_password.html')
+
+
+@app.route('/index')
+def index():
+    """
+    Route: /index
+    Purpose: Displays landing page with logo and welcome.
+    Called from: login.html
     Calls: index.html
     """
     return render_template('index.html')
@@ -211,11 +293,13 @@ def dataset_data_input(dataset_type, entity_id, input_code):
 def dataset_data_input_get_dataset_structure(dataset_type, entity_id, input_code):
     """
     Route: /dataset_data_input_get_dataset_structure/<dataset_type>/<entity_id>
-    Purpose: Fetch structure of dataset form dynamically (header, field type, etc.).
-    Called from: dataset_data_input.html (JS load form).
+    Purpose: Fetch structure of dataset form dynamically (header, field type, etc.)
+             and join with latest entry values (e.g., file_path, value).
+    Called from: dataset_data_input.html (JavaScript form loader).
     """
     structure_table = dataset_structure_tables.get(dataset_type)
-    if not structure_table:
+    entry_table = dataset_entries_tables.get(dataset_type)
+    if not structure_table or not entry_table:
         return jsonify([])
 
     id_field = (
@@ -228,17 +312,35 @@ def dataset_data_input_get_dataset_structure(dataset_type, entity_id, input_code
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     if input_code:
+        # Recursive version if viewing a subsection
         cursor.execute(f"""
             WITH RECURSIVE tree AS (
-                SELECT * FROM {structure_table} WHERE {id_field} = %s AND input_code = %s
+                SELECT s.*
+                FROM {structure_table} s
+                WHERE s.{id_field} = %s AND s.input_code = %s
                 UNION ALL
-                SELECT s.* FROM {structure_table} s
+                SELECT s.*
+                FROM {structure_table} s
                 INNER JOIN tree t ON s.parent_id = t.id
             )
-            SELECT * FROM tree ORDER BY input_code
-        """, (entity_id, input_code))
+            SELECT t.*, e.value, e.file_path, e.is_original, e.next_due_date, 
+                   e.side_note, e.upload_date, e.start_date
+            FROM tree t
+            LEFT JOIN {entry_table} e 
+              ON t.input_code = e.input_code AND e.{id_field} = %s
+            ORDER BY t.input_code
+        """, (entity_id, input_code, entity_id))
     else:
-        cursor.execute(f"SELECT * FROM {structure_table} WHERE {id_field} = %s ORDER BY input_code", (entity_id,))
+        # Flat fetch for full structure
+        cursor.execute(f"""
+            SELECT s.*, e.value, e.file_path, e.is_original, e.next_due_date, 
+                          e.side_note, e.upload_date, e.start_date
+            FROM {structure_table} s
+            LEFT JOIN {entry_table} e 
+              ON s.input_code = e.input_code AND e.{id_field} = %s
+            WHERE s.{id_field} = %s
+            ORDER BY s.input_code
+        """, (entity_id, entity_id))
 
     results = cursor.fetchall()
     conn.close()

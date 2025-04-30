@@ -1,3 +1,6 @@
 psycopg2~=2.9.10
 Flask~=3.0.3
 pdfkit~=1.0.0
+pyzipper~=0.3.6
+Werkzeug~=3.0.2
+python-dotenv~=1.0.1

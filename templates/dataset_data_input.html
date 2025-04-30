@@ -1,14 +1,13 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Dynamic Form Input</title>
-
     <!-- Bootstrap 5 & FontAwesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
     <script>
         async function loadDatasetInput() {
             const dataset_type = "{{ dataset_type }}";
@@ -102,7 +101,8 @@
                                     });
                                 }
                             } else if (item.is_upload) {
-                                html += `<input type="file" class="form-control" name="${item.input_code}" onchange="toggleMeta('${item.input_code}')">
+                                html += `<input type="file" class="form-control" name="${item.input_code}" onchange="handleFileUpload('${item.input_code}', this)">
+                                            <small id="${item.input_code}_status" class="text-success d-block mt-1"></small>
                                             <fieldset id="meta_${item.input_code}" class="border p-3 bg-light rounded mt-2 d-none">
                                                 <legend class="float-none w-auto fs-6 text-muted">Document Info</legend>
                                                 <div class="row g-2 align-items-center">
@@ -124,6 +124,26 @@
                                                 </div>
                                             </fieldset>
                                 `;
+                                if (item.is_upload) {
+                                  if (item.file_path) {
+                                    html += `
+                                      <div class="mt-2 d-flex align-items-center gap-2">
+                                        <a href="/download_file?path=${encodeURIComponent(item.file_path)}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                          <i class="fa fa-download"></i> View Uploaded
+                                        </a>
+                                        <span class="text-success">
+                                          <i class="fa fa-check-circle"></i> Uploaded
+                                        </span>
+                                      </div>
+                                    `;
+                                  } else {
+                                    html += `
+                                      <div class="mt-2 text-warning">
+                                        <i class="fa fa-exclamation-triangle"></i> Upload required
+                                      </div>
+                                    `;
+                                  }
+                                }
                             }
                             html += `</div>`;
                         }
@@ -163,6 +183,33 @@
             } else {
                 metaDiv.classList.add('d-none');
             }
+        }
+
+        function handleFileUpload(inputCode, inputElement) {
+            const file = inputElement.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('input_code', inputCode);
+
+            fetch('/upload_file', {
+                method: 'POST',
+                body: formData
+            }).then(res => res.json())
+              .then(data => {
+                  if (data.file_path) {
+                      document.getElementById(`${inputCode}_status`).textContent = "File uploaded and encrypted.";
+                      // Optionally store the path in a hidden input
+                      const hidden = document.createElement('input');
+                      hidden.type = 'hidden';
+                      hidden.name = inputCode;
+                      hidden.value = data.file_path;
+                      inputElement.closest('.mb-3').appendChild(hidden);
+                  } else {
+                      alert("Upload failed: " + data.error);
+                  }
+              });
         }
 
         window.onload = loadDatasetInput;

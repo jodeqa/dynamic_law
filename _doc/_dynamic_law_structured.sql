@@ -134,7 +134,7 @@ CREATE TABLE company_template_mapping_history (
 -- Step 11: Create company_data_entries
 CREATE TABLE company_data_entries (
     id SERIAL PRIMARY KEY,
-    company_id INT NOT NULL,
+    company_data_id INT NOT NULL,
     input_code VARCHAR(50) NOT NULL,
     value TEXT,
     file_path TEXT,

@@ -8,6 +8,17 @@
   <meta charset="UTF-8">
   <title>Company Browser</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .tree-toggle {
+      cursor: pointer;
+      margin-right: 6px;
+      font-weight: bold;
+      color: #0d6efd;
+    }
+    .tree-toggle:hover {
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body class="p-4">
   <h2>Companies in Group {{ group_id }}</h2>
@@ -62,12 +73,16 @@
     }
 
     function renderTree(data) {
+      let idCounter = 0;
       function build(parentId = null) {
         const nodes = data.filter(d => d.parent_id === parentId);
         if (!nodes.length) return '';
-        let html = '<ul class="list-group">';
+        let html = '<ul class="list-group ms-3">';
         nodes.forEach(node => {
+          const hasChildren = data.some(d => d.parent_id === node.id);
+          const subtreeId = `subtree-${idCounter++}`;
           html += `<li class="list-group-item">
+              ${hasChildren ? `<span class="tree-toggle" onclick="toggleSubtree('${subtreeId}')">▶</span>` : ''}
               <strong>${node.input_code} - ${node.company_name}</strong>
               <span class="float-end">
                 <button class="btn btn-sm btn-warning" onclick="openCompanyForm(${node.id})">Edit</button>
@@ -76,7 +91,7 @@
                 <button class="btn btn-sm btn-info" onclick="openCompanyDataModal(${node.id})">Data</button>
                 <button class="btn btn-sm btn-outline-info" onclick="openMapping(${node.id})">Mapping</button>
               </span>
-              ${build(node.id)}
+              <div id="${subtreeId}" style="display: none;">${build(node.id)}</div>
             </li>`;
         });
         html += '</ul>';
@@ -111,6 +126,13 @@
       const table = document.getElementById("table-container");
       tree.style.display = tree.style.display === "none" ? "block" : "none";
       table.style.display = table.style.display === "none" ? "block" : "none";
+    }
+
+    function toggleSubtree(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.display = el.style.display === 'none' ? 'block' : 'none';
+      }
     }
 
     function openCompanyForm(id = null) {
