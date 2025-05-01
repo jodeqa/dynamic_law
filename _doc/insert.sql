@@ -1,4 +1,39 @@
+TRUNCATE company_data_structure RESTART IDENTITY cascade;
 TRUNCATE compliance_sheet_structure RESTART IDENTITY cascade;
+
+
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '1', NULL, TRUE, 'Alamat', NULL, NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '1.1', 1, TRUE, 'Alamat Kantor', NULL, NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '1.1.1', 2, FALSE, 'Alamat 1', 'text/free', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '1.1.2', 2, FALSE, 'Alamat 2', 'text/free', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '1.1.3', 2, FALSE, 'Kelurahan', 'text/free', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '1.1.4', 2, FALSE, 'Kecamatan', 'text/free', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '1.1.5', 2, FALSE, 'Kota', 'text/free', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '1.1.6', 2, FALSE, 'Propinsi', 'text/free', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '1.1.7', 2, FALSE, 'Kode Pos', 'text/free', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '1.2', 1, TRUE, 'Alamat Surat Menyurat', NULL, NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '1.2.1', 10, FALSE, 'Alamat 1', 'text/free', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '1.2.2', 10, FALSE, 'Alamat 2', 'text/free', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '1.2.3', 10, FALSE, 'Kelurahan', 'text/free', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '1.2.4', 10, FALSE, 'Kecamatan', 'text/free', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '1.2.5', 10, FALSE, 'Kota', 'text/free', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '1.2.6', 10, FALSE, 'Propinsi', 'text/free', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '1.2.7', 10, FALSE, 'Kode Pos', 'text/free', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '2', NULL, TRUE, 'Kontak', NULL, NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '2.1', 18, TRUE, 'Pemilik Usaha', NULL, NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '2.1.1', 19, FALSE, 'Nama', 'text/free', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '2.1.2', 19, FALSE, 'No telp', 'text/number', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '2.1.3', 19, FALSE, 'Email', 'text/email', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '2.2', 18, TRUE, 'Nama Kontak', NULL, NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '2.2.1', 23, FALSE, 'Nama', 'text/free', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '2.2.2', 23, FALSE, 'No telp', 'text/number', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '2.2.3', 23, FALSE, 'Email', 'text/email', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '3', NULL, TRUE, 'Data Lainnya', NULL, NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '3.1', 27, FALSE, 'SIUP', 'text/free', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '3.2', 27, FALSE, 'PKS', 'text/free', NULL, NULL, NULL);
+INSERT INTO company_data_structure (company_data_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '3.3', 27, FALSE, 'File', NULL, NULL, NULL, TRUE);
+
+
 
 INSERT INTO compliance_sheet_structure (sheet_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '1', NULL, TRUE, 'PERIZINAN DASAR OSS', NULL, NULL, NULL, NULL);
 INSERT INTO compliance_sheet_structure (sheet_id, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload) Values (1, '1.1', 1, TRUE, 'Nomor Induk Berusaha (NIB) - Versi OSS RBA', NULL, NULL, NULL, NULL);

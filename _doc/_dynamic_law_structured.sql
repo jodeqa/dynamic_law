@@ -130,7 +130,7 @@ CREATE TABLE company_template_mapping_history (
     compliance_sheet_id INT,
     year SMALLINT,
     link_description TEXT,
-    action VARCHAR(10) DEFAULT 'UPDATE', -- UPDATE/DELETE
+    action_type VARCHAR(10) DEFAULT 'UPDATE', -- UPDATE/DELETE
     action_time TIMESTAMP DEFAULT NOW()
 );
 
