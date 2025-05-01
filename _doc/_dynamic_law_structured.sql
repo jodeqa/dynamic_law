@@ -1,3 +1,7 @@
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE datname = 'dynamic_law' AND pid <> pg_backend_pid();
+
 -- Step 1: Create ENUM type for input_type
 CREATE TYPE input_type_enum AS ENUM (
     'text/free', 

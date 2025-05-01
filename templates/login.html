@@ -1,72 +1,134 @@
-<!-- login.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - SELMA</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SELMA Login</title>
   <style>
     body {
-      background-color: #1c1c1c;
-      color: #fff;
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: #f0f2f5;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .login-container {
-      max-width: 400px;
-      margin: 80px auto;
-      background-color: #2c2c2c;
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(255, 255, 0, 0.2);
+
+    .auth-container {
+      position: relative;
+      width: 800px;
+      height: 400px;
+      background: white;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      display: flex;
     }
-    .btn-selma {
-      background-color: #ffd700;
-      color: #000;
+
+    .form-panel {
+      width: 50%;
+      padding: 40px;
+      box-sizing: border-box;
     }
-    .selma-title {
+
+    .form-panel h2 {
+      margin-bottom: 20px;
+    }
+
+    .form-panel input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    .form-panel button {
+      width: 100%;
+      padding: 10px;
+      background: #0d6efd;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .form-panel .link {
       text-align: center;
-      margin-bottom: 2rem;
+      margin-top: 10px;
+      cursor: pointer;
+      color: #0d6efd;
     }
-    .selma-title h1 {
-      font-size: 2rem;
-      font-weight: bold;
+
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 50%;
+      height: 100%;
+      background: #0d6efd;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      transition: left 0.5s ease;
+      z-index: 2;
     }
-    .selma-title p {
-      font-size: 0.9rem;
-      color: #ccc;
-    }
-    .form-control:focus {
-      border-color: #ffd700;
-      box-shadow: 0 0 0 0.25rem rgba(255, 215, 0, 0.25);
+
+    .show-forgot .overlay {
+      left: 0%;
     }
   </style>
 </head>
 <body>
-  <div class="login-container">
-    <div class="selma-title">
-      <h1>SELMA</h1>
-      <p>Secure Electronic Legal Management Archive</p>
+  <div class="auth-container" id="authBox">
+    <!-- Login Form -->
+    <div class="form-panel">
+      <h2>Login</h2>
+        <form onsubmit="handleLogin(event)">
+          <input type="text" placeholder="Username" />
+          <input type="password" placeholder="Password" />
+          <button onclick="location.href='/'">Login</button>
+          <div class="link" onclick="toggleForgot(true)">Forgot Password?</div>
+        </form>
     </div>
-    <form onsubmit="handleLogin(event)">
-      <div class="mb-3">
-        <label for="username" class="form-label">Username</label>
-        <input type="text" class="form-control" id="username" required>
-      </div>
-      <div class="mb-3">
-        <label for="password" class="form-label">Password</label>
-        <input type="password" class="form-control" id="password" required>
-      </div>
-      <div class="d-grid">
-        <button class="btn btn-selma" type="submit">Login</button>
-      </div>
-    </form>
-    <div class="mt-3 text-center">
-      <a href="/forgot_password" class="text-warning">Forgot your password?</a>
+
+    <!-- Forgot Password Form -->
+    <div class="form-panel">
+      <h2>Reset Password</h2>
+        <form onsubmit="event.preventDefault(); window.location.href='/'">
+          <input type="email" placeholder="Your Email" />
+          <button onclick="location.href='/'">Send Reset Link</button>
+          <div class="link" onclick="toggleForgot(false)">Back to Login</div>
+        </form>
+    </div>
+
+    <!-- Sliding Overlay -->
+    <div class="overlay" id="overlayBox">
+      <h1>SELMA</h1>
+      <p>Secure Electronic Legal<br>Management Archive</p>
     </div>
   </div>
 
   <script>
+    function toggleForgot(show) {
+      const box = document.getElementById("authBox");
+      if (show) {
+        box.classList.add("show-forgot");
+      } else {
+        box.classList.remove("show-forgot");
+      }
+    }
+
     function handleLogin(event) {
+      event.preventDefault();
+      // For demo: always redirect
+      window.location.href = "/index";
+    }
+
+    function handleForgotPassword(event) {
       event.preventDefault();
       // For demo: always redirect
       window.location.href = "/index";

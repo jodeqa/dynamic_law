@@ -254,21 +254,6 @@ def login():
     return render_template('login.html')
 
 
-@app.route('/forgot_password', methods=['GET', 'POST'])
-def forgot_password():
-    """
-    Route: /forgot_password
-    Purpose: Displays forgot password page for user to request reset password.
-    Called from: login.html.
-    Calls: tba
-    """
-    if request.method == 'POST':
-        # Just show a flash for now
-        flash("Password reset link has been sent to your email.", "info")
-        return redirect('/')
-    return render_template('forgot_password.html')
-
-
 @app.route('/index')
 def index():
     """
@@ -486,10 +471,10 @@ def corporate_group_save():
     conn = get_db_connection()
     cursor = conn.cursor()
     if data.get('id'):
-        cursor.execute("UPDATE corporate_group SET group_name = %s, description = %s WHERE id = %s",
+        cursor.execute("UPDATE corporate_group SET group_name = %s, group_description = %s WHERE id = %s",
                        (data['group_name'], data['description'], data['id']))
     else:
-        cursor.execute("INSERT INTO corporate_group (group_name, description) VALUES (%s, %s)",
+        cursor.execute("INSERT INTO corporate_group (group_name, group_description) VALUES (%s, %s)",
                        (data['group_name'], data['description']))
     conn.commit()
     conn.close()

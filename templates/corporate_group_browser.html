@@ -1,16 +1,9 @@
 {% extends "base.html" %}
+{% block title %}SELMA Corporate Browser{% endblock %}
 {% block content %}
 
 <!-- corporate_group_browser.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Corporate Group Browser</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
-</head>
-<body class="p-4">
+
   <h2>Corporate Groups</h2>
   <button class="btn btn-primary mb-3" onclick="openForm()">+ New Group</button>
   <button class="btn btn-secondary mb-3" onclick="exportPDF()">Export to PDF</button>
@@ -21,10 +14,9 @@
       </tr>
     </thead>
   </table>
+{% endblock %}
 
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+{% block scripts %}
   <script>
     $(document).ready(function () {
       $('#groupTable').DataTable({
@@ -98,6 +90,4 @@
       doc.save("corporate_groups.pdf");
     }
   </script>
-</body>
-</html>
 {% endblock %}
