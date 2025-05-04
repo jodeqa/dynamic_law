@@ -1,6 +1,6 @@
 import uuid
 
-from flask import Flask, render_template, request, jsonify, send_file, flash, redirect
+from flask import Flask, render_template, request, jsonify, send_file
 import psycopg2
 import psycopg2.extras
 
@@ -262,7 +262,10 @@ def index():
     Called from: login.html
     Calls: index.html
     """
-    return render_template('index.html')
+    layout = request.args.get("layout", "default")
+    if layout == "figma":
+        return render_template("index.html", layout_template="base_skin_figma.html")
+    return render_template("index.html", layout_template="base.html")
 
 
 # --- Dataset ---
@@ -707,7 +710,7 @@ def dataset_form_get_parent_sibling_info(dataset_type, parent_id, entity_id):
     """, (parent_id, entity_id))
     sibling = cursor.fetchone()
 
-    def get_next_code(last_code):
+    def get_next_code(last_code):   #na
         if not last_code:
             return "1"
         parts = last_code.split('.')

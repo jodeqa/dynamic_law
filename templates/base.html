@@ -10,6 +10,9 @@
 
   <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
   <style>
@@ -32,12 +35,18 @@
     }
     .accordion-body a.nav-link {
       color: #eaeaea !important;
+      margin-bottom: 8px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      transition: background-color 0.3s ease;
     }
-    .btn-toggle {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      z-index: 9999;
+    .accordion-body a.nav-link:hover {
+      background-color: #1d2b3a;
+      text-decoration: none;
+    }
+    .accordion-button:focus {
+      box-shadow: none !important;
+      border-color: transparent !important;
     }
   </style>
 
@@ -49,8 +58,10 @@
 
   <div id="sidebar" class="sidebar p-3">
     <h4 class="text-white">
-      <img src="/static/selma_logo.png" height="32" class="me-2">
-      SELMA
+      <span onclick="showLogoModal()" style="cursor: zoom-in;" class="me-2">
+        <img src="/static/selma_topleft.png" height="26">
+      </span>
+      <a href="/index" class="text-white text-decoration-none">SELMA</a>
     </h4>
     <hr class="text-secondary">
     <div class="accordion" id="menuAccordion">
@@ -138,6 +149,22 @@
     function toggleSidebar() {
       document.getElementById('sidebar').classList.toggle('collapsed');
     }
+    function showLogoModal() {
+      var modal = new bootstrap.Modal(document.getElementById('logoModal'));
+      modal.show();
+    }
   </script>
+
+
+  <!-- Logo Preview Modal -->
+  <div class="modal fade" id="logoModal" tabindex="-1" aria-labelledby="logoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content bg-dark text-white">
+        <div class="modal-body text-center">
+          <img src="/static/selma_topleft.png" class="img-fluid" style="max-height: 400px;">
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
