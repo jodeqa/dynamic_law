@@ -1,6 +1,6 @@
 import uuid
 
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for
 import psycopg2
 import psycopg2.extras
 
@@ -12,6 +12,12 @@ from datetime import datetime
 import os
 import io
 from dotenv import load_dotenv
+
+import bcrypt
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_wtf import CSRFProtect
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
 
 # Load environment variables from .env file
 load_dotenv()
@@ -26,6 +32,48 @@ DB_PASSWORD = os.getenv('DB_PASSWORD')
 DB_PORT = os.getenv('DB_PORT')
 UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER')
 ZIP_PASSWORD = os.getenv('ZIP_PASSWORD')
+IS_UN = os.getenv('BACK_DOOR_UN')
+IS_PW = os.getenv('BACK_DOOR_PW')
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "fallback-dev-key")
+
+
+# Hardening Login ------------------------------------
+# Password Limiter
+# Limiter on Local
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"]
+)
+# Limiter on Server
+# limiter = Limiter(
+#     key_func=get_remote_address,
+#     app=app,
+#     storage_uri="redis://localhost:6379",
+#     default_limits=["200 per day", "50 per hour"]
+# )
+
+# CSRF Protection
+csrf = CSRFProtect()
+csrf.init_app(app)
+
+# Login manager
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+# Cookie setting
+app.config.update(
+    # SESSION_COOKIE_SECURE=True,       # Only True if you're on HTTPS
+    SESSION_COOKIE_SECURE=False,       # Only True if you're on Local
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax'
+)
+
+
+class AdminUser(UserMixin):
+    def __init__(self, id):
+        self.id = id
+
 
 # --- Dataset Type Mapping ---
 dataset_structure_tables = {
@@ -52,6 +100,12 @@ dataset_history_tables = {
 
 
 # Helper Functions ====================================================================================================
+# Login Manager Loader
+@login_manager.user_loader
+def load_user(user_id):
+    return AdminUser(user_id) if user_id == "admin" else None
+
+
 # --- Database connection ---
 def get_db_connection():
     return psycopg2.connect(
@@ -254,7 +308,36 @@ def login():
     return render_template('login.html')
 
 
+@csrf.exempt
+@app.route('/login_check', methods=['POST'])
+@limiter.limit("5 per minute")
+def login_check():
+    """
+    Route: /login_check
+    Purpose: Validates login against hardcoded credentials.
+    """
+
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
+    hashed_pw = IS_PW.encode('utf-8')
+
+    if username == IS_UN and bcrypt.checkpw(password.encode('utf-8'), hashed_pw):
+        login_user(AdminUser("admin"))
+        return jsonify({"message": "Login successful"}), 200
+    else:
+        return jsonify({"error": "Invalid credentials"}), 401
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+
 @app.route('/index')
+@login_required
 def index():
     """
     Route: /index

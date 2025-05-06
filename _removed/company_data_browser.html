@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Company Data History</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
+</head>
+<body class="p-4">
+  <h2>Company Data History - Company ID {{ company_id }}</h2>
+  <div class="mb-3">
+    <button class="btn btn-success" onclick="assignNewData()">+ Assign New Data Template</button>
+    <button class="btn btn-outline-primary" onclick="loadLatestEditable()">Edit Latest Data Sheet</button>
+  </div>
+
+  <table id="companyDataHistoryTable" class="display" style="width:100%">
+    <thead>
+      <tr>
+        <th>Year</th>
+        <th>Data Template</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+  </table>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+  <script>
+    const companyId = {{ company_id }};
+
+    $(document).ready(function () {
+      $('#companyDataHistoryTable').DataTable({
+        ajax: `/company_data_list/${companyId}`,
+        columns: [
+          { data: 'year' },
+          { data: 'company_data_description' },
+          { data: 'company_data_search_tag' }
+        ]
+      });
+    });
+
+    function assignNewData() {
+      const width = 600;
+      const height = 500;
+
+      // Get browser screen position
+      const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
+      const dualScreenTop = window.screenTop !== undefined ? window.screenTop : screen.top;
+
+      const windowWidth = window.innerWidth
+        ? window.innerWidth
+        : document.documentElement.clientWidth
+        ? document.documentElement.clientWidth
+        : screen.width;
+      const windowHeight = window.innerHeight
+        ? window.innerHeight
+        : document.documentElement.clientHeight
+        ? document.documentElement.clientHeight
+        : screen.height;
+
+      const left = dualScreenLeft + (windowWidth - width) / 2;
+      const top = dualScreenTop + (windowHeight - height) / 2;
+
+      const features = `scrollbars=yes,resizable=yes,width=${width},height=${height},top=${top},left=${left}`;
+      window.open(`/company_template_mapping_form?company_id=${companyId}`, '_blank', features);
+    }
+
+    function loadLatestEditable() {
+      const width = 600;
+      const height = 500;
+
+      // Get browser screen position
+      const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
+      const dualScreenTop = window.screenTop !== undefined ? window.screenTop : screen.top;
+
+      const windowWidth = window.innerWidth
+        ? window.innerWidth
+        : document.documentElement.clientWidth
+        ? document.documentElement.clientWidth
+        : screen.width;
+      const windowHeight = window.innerHeight
+        ? window.innerHeight
+        : document.documentElement.clientHeight
+        ? document.documentElement.clientHeight
+        : screen.height;
+
+      const left = dualScreenLeft + (windowWidth - width) / 2;
+      const top = dualScreenTop + (windowHeight - height) / 2;
+
+      const features = `scrollbars=yes,resizable=yes,width=${width},height=${height},top=${top},left=${left}`;
+      fetch(`/company_data_latest/${companyId}`)
+        .then(res => res.json())
+        .then(latest => {
+          if (latest && latest.data_id) {
+            // Instead of redirecting current page, open new popup
+            window.open(`/dataset_data_input/company_data/${latest.data_id}`, '_blank', features);
+          } else {
+            alert("No active company data found.");
+          }
+        });
+    }
+
+    function viewOnly(mappingId) {
+      window.open(`/company_compliance_pdf/${companyId}/${mappingId}`, '_blank');
+    }
+  </script>
+</body>
+</html>
