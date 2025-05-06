@@ -3,6 +3,7 @@
 {% block content %}
 
 <!-- company_browser.html -->
+  <meta name="csrf-token" content="{{ csrf_token() }}">
 
   {% block styling %}
   <style>
@@ -65,7 +66,14 @@
     const groupId = {{ group_id }};
 
     async function loadTree() {
-      const res = await fetch(`/company_tree_data/${groupId}`);
+      const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+      const res = await fetch(`/company_tree_data/${groupId}`, {
+          method: 'GET',
+          headers: {
+            'X-CSRFToken': csrfToken
+          }
+        });
       const data = await res.json();
       document.getElementById('tree-container').innerHTML = renderTree(data);
       renderTable(data);
@@ -167,7 +175,13 @@
 
     async function deleteCompany(id) {
       if (!confirm('Delete this company?')) return;
-      await fetch(`/company_delete/${id}`, { method: 'DELETE' });
+      const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+      await fetch(`/company_delete/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'X-CSRFToken': csrfToken
+        }
+      });
       loadTree();
     }
 

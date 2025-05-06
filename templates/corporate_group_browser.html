@@ -3,6 +3,7 @@
 {% block content %}
 
 <!-- corporate_group_browser.html -->
+  <meta name="csrf-token" content="{{ csrf_token() }}">
 
   <h2>Corporate Groups</h2>
   <button class="btn btn-primary mb-3" onclick="openForm()">+ New Group</button>
@@ -72,7 +73,13 @@
 
     function deleteGroup(id) {
       if (!confirm('Delete this group?')) return;
-      fetch(`/corporate_group_delete/${id}`, { method: 'DELETE' })
+      const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+      fetch(`/corporate_group_delete/${id}`, {
+          method: 'DELETE',
+            headers: {
+            'X-CSRFToken': csrfToken
+            }
+        })
         .then(res => res.json())
         .then(() => location.reload());
     }
@@ -84,7 +91,7 @@
       const rows = $('#groupTable').DataTable().rows().data();
       let y = 20;
       rows.each(r => {
-        doc.text(`ID: ${r.id}, Name: ${r.group_name}, Desc: ${r.description}`, 10, y);
+        doc.text(`ID: ${r.id}, Name: ${r.group_name}, Desc: ${r.group_description}`, 10, y);
         y += 10;
       });
       doc.save("corporate_groups.pdf");

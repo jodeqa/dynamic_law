@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>Compliance Sheet Export</title>
   <style>
     body {
@@ -49,8 +50,13 @@
         <span class="label">{{ field.input_display }}:</span>
         {% if field.is_upload and field.file_path %}
           <a href="{{ field.file_path }}" class="file-link">{{ field.file_path.split('/')[-1] }}</a>
+        {% elif field.input_type == "text/multiple" %}
+            {% set list_val = field.value | safe | loads %}
+            {% for item in list_val %}
+              <div class="value">• {{ item }}</div>
+            {% endfor %}
         {% else %}
-          <span class="value">{{ field.value or '-' }}</span>
+            <span class="value">{{ field.value or '-' }}</span>
         {% endif %}
       </div>
     {% endif %}

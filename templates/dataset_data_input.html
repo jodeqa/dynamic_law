@@ -14,7 +14,7 @@
 
         async function loadDatasetInput() {
             const dataset_type = "{{ dataset_type }}";
-            const inputCode = "{{ input_code }}" !== "None" ? "{{ input_code }}" : null;
+            const inputCode = {{ 'null' if input_code is none else '"' ~ input_code ~ '"' }};
 
             const sheetId = "{{ sheet_id }}" !== "None" ? "{{ sheet_id }}" : null;
             const corporateId = "{{ corporate_id }}" !== "None" ? "{{ corporate_id }}" : null;
@@ -23,7 +23,9 @@
             let entityId = sheetId || corporateId || companyDataId;
 
             let apiUrl = `/dataset_data_input_get_dataset_structure/${dataset_type}/${entityId}`;
-            if (inputCode) apiUrl += `/${inputCode}`;
+            if (inputCode && inputCode !== 'null') {
+                apiUrl += `/${inputCode}`;
+            }
 
             console.log("✅ Fetching dataset from:", apiUrl);
 
@@ -78,7 +80,26 @@
                                         <label>${item.input_display}
                                         </label>
                                         `;
-                            if (item.input_type && item.input_type.startsWith("text/")) {
+                            if (item.input_type === "text/multiple") {
+                                let values = [];
+                                try {
+                                    values = JSON.parse(item.value || "[]");
+                                    if (!Array.isArray(values)) values = [item.value];
+                                } catch {
+                                    values = [item.value];
+                                }
+
+                                html += `<div id="multi_${item.input_code}_wrapper" data-required="${item.is_mandatory}">`;
+                                (values.length ? values : [""]).forEach(v => {
+                                    html += `
+                                        <div class="input-group mb-2">
+                                            <input type="text" class="form-control" name="${item.input_code}[]" value="${v || ""}">
+                                            <button type="button" class="btn btn-outline-secondary" onclick="removeMultiField(this)">−</button>
+                                        </div>
+                                    `;
+                                });
+                                html += `<button type="button" class="btn btn-sm btn-success mb-2" onclick="addMultiField('${item.input_code}')">+ Add More</button></div>`;
+                            } else if (item.input_type && item.input_type.startsWith("text/")) {
                                 html += `<input type="${item.input_type.split("/")[1]}" class="form-control" name="${item.input_code}" ${item.is_mandatory ? "required" : ""}>`;
                             } else if (item.input_type && item.input_type.startsWith("select/")) {
                                 const options = item.select_value?.split(",").map(o => o.trim()) || [];
@@ -161,8 +182,33 @@
             }
         }
 
+        function addMultiField(code) {
+            const wrapper = document.getElementById(`multi_${code}_wrapper`);
+            const group = document.createElement("div");
+            group.className = "input-group mb-2";
+            group.innerHTML = `
+                <input type="text" class="form-control" name="${code}[]">
+                <button type="button" class="btn btn-outline-secondary" onclick="removeMultiField(this)">−</button>
+            `;
+            wrapper.insertBefore(group, wrapper.lastElementChild);
+        }
+
+        function removeMultiField(button) {
+            button.parentElement.remove();
+        }
+
         async function submitForm(event) {
             event.preventDefault();
+            // Validate text/multiple required groups
+            const requiredGroups = document.querySelectorAll('[id^="multi_"][data-required="true"]');
+            for (const group of requiredGroups) {
+            const filled = [...group.querySelectorAll('input')].some(input => input.value.trim() !== "");
+                if (!filled) {
+                  alert("At least one entry must be filled for required fields.");
+                  return;
+                }
+            }
+
             const formData = new FormData(document.getElementById("dynamicForm"));
             let url = `/dataset_data_input_submit_form/${dataset_type}`;
             if (dataset_type === 'compliance') url += `?sheet_id=${sheet_id}`;

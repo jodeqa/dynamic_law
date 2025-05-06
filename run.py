@@ -12,6 +12,13 @@ from datetime import datetime
 import os
 import io
 from dotenv import load_dotenv
+import json
+
+import bcrypt
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_wtf import CSRFProtect
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
 
 import bcrypt
 from flask_limiter import Limiter
@@ -23,6 +30,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 load_dotenv()
 
 app = Flask(__name__)
+app.jinja_env.filters['loads'] = json.loads
 
 # load Config
 DB_HOST = os.getenv('DB_HOST')
@@ -467,9 +475,14 @@ def dataset_data_input_submit_form(dataset_type):
     backup_old_entries(dataset_type, entity_id, real_input_codes, conn)
 
     for key, values in form_data.items():
-        value = values[0]
         if any(key.endswith(suffix) for suffix in ["_is_original", "_start_date", "_next_due_date", "_side_note"]):
             continue  # handled below
+
+        if len(values) > 1:
+            value = json.dumps(values)
+        else:
+            value = values[0]
+
         input_code = key
 
         # Related metadata for uploads
@@ -805,6 +818,8 @@ def dataset_form_get_parent_sibling_info(dataset_type, parent_id, entity_id):
 
     conn.close()
     return jsonify({
+        f"{id_field}": entity_id,
+        "parent_id": parent_id,
         "parent_display": parent_display,
         "last_sibling_code": last_code,
         "next_input_code": next_code
@@ -963,6 +978,7 @@ def copy_template(dataset_type, template_id):
     """
     structure_table = dataset_structure_tables.get(dataset_type)
     template_table = dataset_browse_tables.get(dataset_type)
+    id_field = "company_data_id" if dataset_type == "company_data" else "sheet_id"
     new_template_id = None
 
     if not structure_table or not template_table:
@@ -971,59 +987,55 @@ def copy_template(dataset_type, template_id):
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # Fetch original template
+    # Step 1: Duplicate template metadata
     if dataset_type == "company_data":
-        cursor.execute("SELECT company_data_search_tag, company_data_description "
-                       "FROM company_data_browse WHERE id = %s", (template_id,))
+        cursor.execute("SELECT company_data_search_tag, company_data_description FROM company_data_browse WHERE id = %s", (template_id,))
         template = cursor.fetchone()
         if not template:
             conn.close()
             return jsonify({"error": "Original template not found."}), 404
 
-        # Insert new template
-        cursor.execute("""
-            INSERT INTO company_data_browse (company_data_search_tag, company_data_description, created_at)
-            VALUES (%s, %s, NOW()) RETURNING id
-        """, (template['company_data_search_tag'] + " Copy", template['company_data_description'] + " (Copy)"))
-        new_template_id = cursor.fetchone()['id']
-
-        # Copy structure
-        cursor.execute("""
-            INSERT INTO company_data_structure 
-            (company_data_id, input_code, parent_id, is_header, input_display, 
-            input_type, is_mandatory, select_value, is_upload, created_at)
-            SELECT 
-            %s, input_code, parent_id, is_header, input_display, 
-            input_type, is_mandatory, select_value, is_upload, NOW()
-            FROM company_data_structure WHERE company_data_id = %s
-        """, (new_template_id, template_id))
-
-    elif dataset_type == "compliance":
-        cursor.execute("SELECT sheet_search_tag, sheet_description "
-                       "FROM compliance_sheet_browse WHERE id = %s", (template_id,))
+        cursor.execute("""INSERT INTO company_data_browse (company_data_search_tag, company_data_description, created_at)
+                          VALUES (%s, %s, NOW()) RETURNING id""",
+                       (template['company_data_search_tag'] + " Copy", template['company_data_description'] + " (Copy)"))
+    else:  # compliance
+        cursor.execute("SELECT sheet_search_tag, sheet_description FROM compliance_sheet_browse WHERE id = %s", (template_id,))
         template = cursor.fetchone()
         if not template:
             conn.close()
             return jsonify({"error": "Original template not found."}), 404
 
-        cursor.execute("""
-            INSERT INTO compliance_sheet_browse (sheet_search_tag, sheet_description, created_at)
-            VALUES (%s, %s, NOW()) RETURNING id
-        """, (template['sheet_search_tag'] + " Copy", template['sheet_description'] + " (Copy)"))
-        new_template_id = cursor.fetchone()['id']
+        cursor.execute("""INSERT INTO compliance_sheet_browse (sheet_search_tag, sheet_description, created_at)
+                          VALUES (%s, %s, NOW()) RETURNING id""",
+                       (template['sheet_search_tag'] + " Copy", template['sheet_description'] + " (Copy)"))
 
-        cursor.execute("""
-            INSERT INTO compliance_sheet_structure 
-            (sheet_id, input_code, parent_id, is_header, input_display, 
-            input_type, is_mandatory, select_value, is_upload, created_at)
-            SELECT %s, input_code, parent_id, is_header, input_display, 
-            input_type, is_mandatory, select_value, is_upload, NOW()
-            FROM compliance_sheet_structure WHERE sheet_id = %s
-        """, (new_template_id, template_id))
+    new_template_id = cursor.fetchone()['id']
+
+    # Step 2: Copy structure rows with temporary NULL parent_id
+    cursor.execute(f"""INSERT INTO {structure_table}
+                      ({id_field}, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload, created_at)
+                      SELECT %s, input_code, NULL, is_header, input_display, input_type, is_mandatory, select_value, is_upload, NOW()
+                      FROM {structure_table} WHERE {id_field} = %s
+                      RETURNING id, input_code""", (new_template_id, template_id))
+    new_rows = cursor.fetchall()
+    code_to_new_id = {row['input_code']: row['id'] for row in new_rows}
+
+    # Step 3: Fetch old input_code → parent_id
+    cursor.execute(f"""SELECT id, input_code, parent_id FROM {structure_table} WHERE {id_field} = %s""", (template_id,))
+    old_rows = cursor.fetchall()
+    old_id_to_code = {r['id']: r['input_code'] for r in old_rows}
+    child_code_to_parent_code = {r['input_code']: old_id_to_code.get(r['parent_id']) for r in old_rows if r['parent_id']}
+
+    # Step 4: Update parent_id in new structure
+    for child_code, parent_code in child_code_to_parent_code.items():
+        new_child_id = code_to_new_id.get(child_code)
+        new_parent_id = code_to_new_id.get(parent_code)
+        if new_child_id and new_parent_id:
+            cursor.execute(f"""UPDATE {structure_table} SET parent_id = %s WHERE id = %s""",
+                           (new_parent_id, new_child_id))
 
     conn.commit()
     conn.close()
-
     return jsonify({"message": "Template copied successfully!", "new_id": new_template_id})
 
 
@@ -1344,17 +1356,31 @@ def dataset_template_browse_data(dataset_type):
 
 
 # Unified form renderer
-@app.route('/dataset_template_form/<dataset_type>')
-def dataset_template_form(dataset_type):
+@app.route('/dataset_template_form/<dataset_type>', defaults={'template_id': None})
+@app.route('/dataset_template_form/<dataset_type>/<int:template_id>')
+def dataset_template_form(dataset_type, template_id):
     """
-    Route: /dataset_template_form/<dataset_type>
-    Purpose: Displays the form to Add New Template (company_data or compliance).
-    Called from: dataset_template_browser.html (Button Add New Template)
+    Route: /dataset_template_form/<dataset_type> or /dataset_template_form/<dataset_type>/<id>
+    Purpose: Displays the form to Add or Edit Template.
+    Called from: dataset_template_browser.html
     Calls: dataset_template_form.html
     """
     if dataset_type not in ['company_data', 'compliance']:
         return "Invalid dataset type", 400
-    return render_template('dataset_template_form.html', dataset_type=dataset_type)
+
+    template_data = None
+    if template_id is not None:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute(f"SELECT * FROM {dataset_browse_tables[dataset_type]} WHERE id = %s", (template_id,))
+        template_data = cur.fetchone()
+        conn.close()
+
+    return render_template(
+        'dataset_template_form.html',
+        dataset_type=dataset_type,
+        template_data=template_data
+    )
 
 
 # Unified save
@@ -1362,7 +1388,7 @@ def dataset_template_form(dataset_type):
 def dataset_template_save(dataset_type):
     """
     Route: /dataset_template_save/<dataset_type> [POST]
-    Purpose: Insert a new template record into compliance or company_data browse table.
+    Purpose: Insert or update a template record into compliance or company_data browse table.
     Called from: dataset_template_form.html ➝ Submit
     """
     conn = get_db_connection()
@@ -1370,25 +1396,49 @@ def dataset_template_save(dataset_type):
 
     search_tag = request.form['search_tag']
     description = request.form['description']
+    template_id = request.form.get('template_id')
+    try:
+        if dataset_type == 'company_data':
+            if template_id:
+                cursor.execute("""
+                    UPDATE company_data_browse
+                    SET company_data_search_tag = %s,
+                        company_data_description = %s
+                    WHERE id = %s
+                """, (search_tag, description, template_id))
+                new_id = template_id
+            else:
+                cursor.execute("""
+                    INSERT INTO company_data_browse (company_data_search_tag, company_data_description)
+                    VALUES (%s, %s) RETURNING id
+                """, (search_tag, description))
+                new_id = cursor.fetchone()[0]
 
-    if dataset_type == 'company_data':
-        cursor.execute("""
-            INSERT INTO company_data_browse (company_data_search_tag, company_data_description)
-            VALUES (%s, %s) RETURNING id
-        """, (search_tag, description))
-    elif dataset_type == 'compliance':
-        cursor.execute("""
-            INSERT INTO compliance_sheet_browse (sheet_search_tag, sheet_description)
-            VALUES (%s, %s) RETURNING id
-        """, (search_tag, description))
-    else:
+        elif dataset_type == 'compliance':
+            if template_id:
+                cursor.execute("""
+                    UPDATE compliance_sheet_browse
+                    SET sheet_search_tag = %s,
+                        sheet_description = %s
+                    WHERE id = %s
+                """, (search_tag, description, template_id))
+                new_id = template_id
+            else:
+                cursor.execute("""
+                    INSERT INTO compliance_sheet_browse (sheet_search_tag, sheet_description)
+                    VALUES (%s, %s) RETURNING id
+                """, (search_tag, description))
+                new_id = cursor.fetchone()[0]
+        else:
+            return jsonify({"error": "Invalid dataset type."}), 400
+
+        conn.commit()
+        return jsonify({"id": new_id})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)})
+    finally:
         conn.close()
-        return jsonify({"error": "Invalid dataset type."}), 400
-
-    new_id = cursor.fetchone()[0]
-    conn.commit()
-    conn.close()
-    return jsonify({"id": new_id})
 
 
 # Error Handler for Uniform JSON ======================================================================================
@@ -1396,6 +1446,11 @@ def dataset_template_save(dataset_type):
 @app.errorhandler(404)
 def page_not_found(e):
     return jsonify({"error": "Not Found"}), 404
+
+
+@app.errorhandler(405)
+def method_not_allowed(e):
+    return jsonify({"error": "Method Not Allowed"}), 405
 
 
 @app.errorhandler(500)

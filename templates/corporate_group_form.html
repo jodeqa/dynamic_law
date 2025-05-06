@@ -3,6 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>Corporate Group Form</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
@@ -16,7 +17,7 @@
     </div>
     <div class="mb-3">
       <label>Description</label>
-      <textarea class="form-control" name="description">{{ group.description if group else '' }}</textarea>
+      <textarea class="form-control" name="description">{{ group.group_description if group else '' }}</textarea>
     </div>
     <button class="btn btn-success w-100">Save</button>
   </form>
@@ -25,6 +26,8 @@
     async function saveGroup(event) {
       event.preventDefault();
       const form = new FormData(event.target);
+      const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+      form.append('csrf_token', csrfToken);
       const res = await fetch('/corporate_group_save', { method: 'POST', body: form });
       const result = await res.json();
       alert(result.message);

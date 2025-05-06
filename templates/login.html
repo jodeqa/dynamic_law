@@ -211,15 +211,17 @@
 
     let isDragging = false;
     let startX = 0;
-    let sliderBtn, containerWidth;
+    let sliderBtn, container, maxSlide;
 
     function startSlide(e) {
+      e.preventDefault();
+
       sliderBtn = document.getElementById("sliderBtn");
-      const container = sliderBtn.parentElement;
-      containerWidth = container.offsetWidth;
+      container = sliderBtn.parentElement;
+      maxSlide = container.offsetWidth - sliderBtn.offsetWidth;
 
       isDragging = true;
-      startX = e.clientX || e.touches[0].clientX;
+      startX = (e.touches ? e.touches[0].clientX : e.clientX) - sliderBtn.offsetLeft;
 
       document.addEventListener("mousemove", onSlide);
       document.addEventListener("mouseup", stopSlide);
@@ -229,25 +231,35 @@
 
     function onSlide(e) {
       if (!isDragging) return;
-      const currentX = e.clientX || e.touches[0].clientX;
-      let dx = currentX - startX;
-      dx = Math.max(0, Math.min(dx, containerWidth - 45));
-      sliderBtn.style.left = dx + "px";
+      const x = e.touches ? e.touches[0].clientX : e.clientX;
+      let moveX = x - startX;
+      moveX = Math.max(0, Math.min(moveX, maxSlide));
+      sliderBtn.style.left = `${moveX}px`;
 
-      if (dx >= containerWidth - 50) {
+      // Only trigger when almost fully slid
+      if (moveX >= maxSlide - 5) {
         completeLogin();
-        stopSlide();
+        stopSlide(true);
       }
     }
 
-    function stopSlide() {
+    function stopSlide(forceComplete = false) {
       if (!isDragging) return;
       isDragging = false;
-      sliderBtn.style.left = "0px";
+
       document.removeEventListener("mousemove", onSlide);
       document.removeEventListener("mouseup", stopSlide);
       document.removeEventListener("touchmove", onSlide);
       document.removeEventListener("touchend", stopSlide);
+
+      if (!forceComplete) {
+        // Snap back
+        sliderBtn.style.transition = "left 0.3s ease";
+        sliderBtn.style.left = "0px";
+        setTimeout(() => {
+          sliderBtn.style.transition = "";
+        }, 300);
+      }
     }
 
     function completeLogin() {

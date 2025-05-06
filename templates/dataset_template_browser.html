@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
+  <meta name="csrf-token" content="{{ csrf_token() }}">
 
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 id="templateTitle">Template Browser</h2>
@@ -53,6 +54,7 @@
             data: null,
             render: function (row) {
               return `
+                <button class="btn btn-sm btn-primary" onclick="openEditWindow(${row.id})">Edit Info</button>
                 <a class="btn btn-sm btn-primary" href="/dataset_form_browser/${datasetType}/${row.id}">Edit Structure</a>
                 <button class="btn btn-sm btn-success copy-btn" onclick="copyTemplate(this, ${row.id})">Copy Template</button>
               `;
@@ -63,37 +65,62 @@
 
       $('#btnAddTemplate').click(() => {
 
+        const width = 600;
+        const height = 500;
+
+        // Get browser screen position
+        const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
+        const dualScreenTop = window.screenTop !== undefined ? window.screenTop : screen.top;
+
+        const windowWidth = window.innerWidth
+          ? window.innerWidth
+          : document.documentElement.clientWidth
+          ? document.documentElement.clientWidth
+          : screen.width;
+        const windowHeight = window.innerHeight
+          ? window.innerHeight
+          : document.documentElement.clientHeight
+          ? document.documentElement.clientHeight
+          : screen.height;
+
+        const left = dualScreenLeft + (windowWidth - width) / 2;
+        const top = dualScreenTop + (windowHeight - height) / 2;
+
+        const features = `scrollbars=yes,resizable=yes,width=${width},height=${height},top=${top},left=${left}`;
+        const newWin = window.open(newTemplateUrl, '_blank', features);
+          const timer = setInterval(() => {
+            if (newWin.closed) {
+              clearInterval(timer);
+              $('#templateTable').DataTable().ajax.reload();
+            }
+	    }, 500);
+	  });
+    });
+
+    function openEditWindow(templateId) {
       const width = 600;
       const height = 500;
 
-      // Get browser screen position
       const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
       const dualScreenTop = window.screenTop !== undefined ? window.screenTop : screen.top;
 
-      const windowWidth = window.innerWidth
-        ? window.innerWidth
-        : document.documentElement.clientWidth
-        ? document.documentElement.clientWidth
-        : screen.width;
-      const windowHeight = window.innerHeight
-        ? window.innerHeight
-        : document.documentElement.clientHeight
-        ? document.documentElement.clientHeight
-        : screen.height;
+      const windowWidth = window.innerWidth || document.documentElement.clientWidth || screen.width;
+      const windowHeight = window.innerHeight || document.documentElement.clientHeight || screen.height;
 
       const left = dualScreenLeft + (windowWidth - width) / 2;
       const top = dualScreenTop + (windowHeight - height) / 2;
 
       const features = `scrollbars=yes,resizable=yes,width=${width},height=${height},top=${top},left=${left}`;
-      const newWin = window.open(newTemplateUrl, '_blank', features);
-        const timer = setInterval(() => {
-          if (newWin.closed) {
-            clearInterval(timer);
-            $('#templateTable').DataTable().ajax.reload();
-          }
-        }, 500);
-      });
-    });
+      const newWin = window.open(`/dataset_template_form/${datasetType}/${templateId}`, '_blank', features);
+
+      const timer = setInterval(() => {
+        if (newWin.closed) {
+          clearInterval(timer);
+          $('#templateTable').DataTable().ajax.reload();
+        }
+      }, 500);
+    }
+
 
     function copyTemplate(button, templateId) {
       if (!confirm('Copy this template?')) return;
@@ -101,8 +128,13 @@
       button.disabled = true;
       const oldText = button.innerHTML;
       button.innerHTML = 'Copying...';
-
-      fetch(`/copy_template/${datasetType}/${templateId}`, { method: 'POST' })
+      const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+      fetch(`/copy_template/${datasetType}/${templateId}`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': csrfToken
+            }
+          })
         .then(res => res.json())
         .then(data => {
           alert(data.message);

@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Add/Edit Field</title>
 
@@ -11,6 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <script>
+        let dataset_type = "{{ dataset_type }}";
         document.addEventListener("DOMContentLoaded", async function () {
             const params = new URLSearchParams(window.location.search);
             const editId = params.get("edit");
@@ -20,10 +22,15 @@
             const sheetId = params.get("sheet_id") || null;
             const corporateId = params.get("corporate_id") || null;
             const companyDataId  = "{{ company_data_id }}" || null;
-
-            async function fetchFieldData(url) {
-                const response = await fetch(url);
-                return await response.json();
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+            async function fetchFieldData(url, method = "GET") {
+              const response = await fetch(url, {
+                method,
+                headers: {
+                  'X-CSRFToken': csrfToken
+                }
+              });
+              return await response.json();
             }
 
             if (editId) {
@@ -41,11 +48,28 @@
 
                 if (dataset_type === "corporate") {
                     document.getElementById("corporate_id").value = field.corporate_id;
-                } else {
+                } else if (dataset_type === "compliance") {
                     document.getElementById("sheet_id").value = field.sheet_id;
+                } else if (dataset_type === "company_data") {
+                    document.getElementById("sheet_id").value = field.company_data_id;
                 }
 
+                // Show parent label and sibling info in edit mode
+                let parentInfo = await fetchFieldData(`/dataset_form_get_parent_sibling_info/${dataset_type}/${field.parent_id}/${dataset_type === "corporate"
+                    ? corporateId
+                    : dataset_type === "compliance"
+                    ? sheetId
+                    : companyDataId}`);
+
+                document.getElementById("parent_display").innerText = parentInfo.parent_display || "Root";
+                document.getElementById("last_sibling_code").innerText = parentInfo.last_sibling_code || "None";
+
                 toggleInputFields();
+
+                document.getElementById("label_entity_id").innerText =
+                  dataset_type === "company_data" ? "Company Data ID:"
+                  : dataset_type === "corporate" ? "Corporate ID:"
+                  : "Compliance Sheet ID:";
             } else if (addParentId) {
                 document.getElementById("formTitle").innerText = "Add New Child";
                 document.getElementById("parent_id").value = addParentId;
@@ -62,7 +86,6 @@
                 document.getElementById("input_code").value = data.next_input_code;
             } else if (addSiblingId) {
                 document.getElementById("formTitle").innerText = "Add New Sibling";
-                document.getElementById("parent_id").value = 0;
 
                 let apiUrl = `/dataset_form_get_parent_sibling_info/${dataset_type}/${addSiblingId}/${dataset_type === "corporate"
                     ? corporateId
@@ -71,10 +94,14 @@
                     : companyDataId}`;
                 const data = await fetchFieldData(apiUrl);
 
-                document.getElementById("parent_display").innerText = "Root";
+                document.getElementById("parent_display").innerText = data.parent_display || "Root";
                 document.getElementById("last_sibling_code").innerText = data.last_sibling_code || "None";
                 document.getElementById("input_code").value = data.next_input_code;
+
+                // ✅ Correctly assign parent_id from fetched parent
+                document.getElementById("parent_id").value = data.parent_id || "";
             }
+
 
             loadComplianceSheets();
         });
@@ -112,10 +139,15 @@
             let url = editId ? `/dataset_form_edit_field/${dataset_type}/${editId}` : `/dataset_form_add_field/${dataset_type}`;
             let method = editId ? "PUT" : "POST";
 
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
             const response = await fetch(url, {
-                method: method,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
+              method: method,
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken
+              },
+              body: JSON.stringify(data)
             });
 
             const result = await response.json();
@@ -131,7 +163,7 @@
 
         <form>
             <div class="mb-3">
-                <label class="form-label">Sheet ID:</label>
+                <label class="form-label" id="label_entity_id">Template ID:</label>
                 <input id="sheet_id" type="number" class="form-control" required>
             </div>
 
@@ -165,6 +197,7 @@
                 <label class="form-label">Type:</label>
                 <select id="input_type" class="form-select">
                     <option value="text/free">Text (Free)</option>
+                    <option value="text/multiple">Text (Free)</option>
                     <option value="text/number">Text (Number)</option>
                     <option value="text/email">Text (Email)</option>
                     <option value="text/date">Text (Date)</option>
@@ -200,8 +233,13 @@
                     if (dataset_type === "corporate") {
                         document.getElementById("compliance_label").style.display = "block";
                         document.getElementById("compliance_sheet").style.display = "block";
-
-                        const response = await fetch('/get_compliance_sheets');
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+                        const response = await fetch('/get_compliance_sheets', {
+                          method: method,
+                          headers: {
+                            'X-CSRFToken': csrfToken
+                          }
+                        });
                         const sheets = await response.json();
 
                         const dropdown = document.getElementById('compliance_sheet');
