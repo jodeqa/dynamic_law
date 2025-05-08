@@ -32,6 +32,7 @@ load_dotenv()
 app = Flask(__name__)
 app.jinja_env.filters['loads'] = json.loads
 
+
 # load Config
 DB_HOST = os.getenv('DB_HOST')
 DB_NAME = os.getenv('DB_NAME')
