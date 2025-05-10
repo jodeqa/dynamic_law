@@ -20,12 +20,6 @@ from flask_limiter.util import get_remote_address
 from flask_wtf import CSRFProtect
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
 
-import bcrypt
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-from flask_wtf import CSRFProtect
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
-
 # Load environment variables from .env file
 load_dotenv()
 
@@ -361,9 +355,10 @@ def index():
 
 
 # --- Dataset ---
-@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>', defaults={'input_code': None})
-@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>/<input_code>')
-def dataset_data_input(dataset_type, entity_id, input_code):
+@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>', defaults={'company_id': None, 'input_code': None})
+@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>/<int:company_id>', defaults={'input_code': None})
+@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>/<int:company_id>/<input_code>')
+def dataset_data_input(dataset_type, entity_id, company_id, input_code):
     """
     Route: /dataset_data_input/<dataset_type>/<entity_id>
     Purpose: Show dynamic input form to fill data (company data or compliance).
@@ -372,6 +367,7 @@ def dataset_data_input(dataset_type, entity_id, input_code):
     """
     return render_template("dataset_data_input.html",
                            dataset_type=dataset_type,
+                           company_id=company_id,
                            sheet_id=entity_id if dataset_type == "compliance" else None,
                            corporate_id=entity_id if dataset_type == "corporate" else None,
                            company_data_id=entity_id if dataset_type == "company_data" else None,
@@ -448,6 +444,8 @@ def dataset_data_input_submit_form(dataset_type):
     Called from: dataset_data_input.html (Submit form).
     Calls: backup_old_entries(), update_is_complete_flag()
     """
+    company_id = request.args.get('company_id', type=int)
+
     form_data = request.form.to_dict(flat=False)
     entry_table = dataset_entries_tables.get(dataset_type)
     if not entry_table:
@@ -496,16 +494,16 @@ def dataset_data_input_submit_form(dataset_type):
             upload_date = now if value else None
             cursor.execute(f"""
                 INSERT INTO {entry_table} 
-                ({id_field}, input_code, value, is_original, 
+                (company_id, {id_field}, input_code, value, is_original, 
                 start_date, next_due_date, upload_date, side_note, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (entity_id, input_code, value, is_original,
                   start_date, next_due_date, upload_date, side_note, now))
 
         else:
             cursor.execute(f"""
-                INSERT INTO {entry_table} ({id_field}, input_code, value, created_at)
-                VALUES (%s, %s, %s, %s)
+                INSERT INTO {entry_table} (company_id, {id_field}, input_code, value, created_at)
+                VALUES (%s, %s, %s, %s, %s)
             """, (entity_id, input_code, value, now))
 
     update_is_complete_flag(dataset_type, entity_id, conn)
@@ -712,10 +710,10 @@ def company_delete(id):
 
 
 # dataset Data =======================================================================================================
-@app.route('/dataset_form_browser/<dataset_type>/<int:entity_id>')
-def dataset_form_browser(dataset_type, entity_id):
+@app.route('/dataset_form_browser/<dataset_type>/<int:entity_id>/<string:template_name>')
+def dataset_form_browser(dataset_type, entity_id, template_name):
     """
-    Route: /dataset_form_browser/<dataset_type>/<entity_id>
+    Route: /dataset_form_browser/<dataset_type>/<entity_id>/<template_name>
     Purpose: Displays template field structure in Tree/Collapse/Expand style for a dataset.
     Used in: dataset_template_browser.html ➝ Edit Structure
     Called from: dataset_form_browser.html
@@ -723,6 +721,7 @@ def dataset_form_browser(dataset_type, entity_id):
     """
     return render_template("dataset_form_browser.html",
                            dataset_type=dataset_type,
+                           template_name=template_name,
                            sheet_id=entity_id if dataset_type == "compliance" else None,
                            corporate_id=entity_id if dataset_type == "corporate" else None,
                            company_data_id=entity_id if dataset_type == "company_data" else None)
@@ -807,7 +806,7 @@ def dataset_form_get_parent_sibling_info(dataset_type, parent_id, entity_id):
     """, (parent_id, entity_id))
     sibling = cursor.fetchone()
 
-    def get_next_code(last_code):   #na
+    def get_next_code(last_code):   # noqa
         if not last_code:
             return "1"
         parts = last_code.split('.')
@@ -990,17 +989,21 @@ def copy_template(dataset_type, template_id):
 
     # Step 1: Duplicate template metadata
     if dataset_type == "company_data":
-        cursor.execute("SELECT company_data_search_tag, company_data_description FROM company_data_browse WHERE id = %s", (template_id,))
+        cursor.execute("SELECT company_data_search_tag, company_data_description "
+                       "FROM company_data_browse WHERE id = %s", (template_id,))
         template = cursor.fetchone()
         if not template:
             conn.close()
             return jsonify({"error": "Original template not found."}), 404
 
-        cursor.execute("""INSERT INTO company_data_browse (company_data_search_tag, company_data_description, created_at)
+        cursor.execute("""INSERT INTO company_data_browse 
+                          (company_data_search_tag, company_data_description, created_at)
                           VALUES (%s, %s, NOW()) RETURNING id""",
-                       (template['company_data_search_tag'] + " Copy", template['company_data_description'] + " (Copy)"))
+                       (template['company_data_search_tag'] + " Copy",
+                        template['company_data_description'] + " (Copy)"))
     else:  # compliance
-        cursor.execute("SELECT sheet_search_tag, sheet_description FROM compliance_sheet_browse WHERE id = %s", (template_id,))
+        cursor.execute("SELECT sheet_search_tag, sheet_description "
+                       "FROM compliance_sheet_browse WHERE id = %s", (template_id,))
         template = cursor.fetchone()
         if not template:
             conn.close()
@@ -1014,15 +1017,18 @@ def copy_template(dataset_type, template_id):
 
     # Step 2: Copy structure rows with temporary NULL parent_id
     cursor.execute(f"""INSERT INTO {structure_table}
-                      ({id_field}, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload, created_at)
-                      SELECT %s, input_code, NULL, is_header, input_display, input_type, is_mandatory, select_value, is_upload, NOW()
+                      ({id_field}, input_code, parent_id, is_header, input_display, input_type, 
+                      is_mandatory, select_value, is_upload, created_at)
+                      SELECT %s, input_code, NULL, is_header, input_display, input_type, 
+                      is_mandatory, select_value, is_upload, NOW()
                       FROM {structure_table} WHERE {id_field} = %s
                       RETURNING id, input_code""", (new_template_id, template_id))
     new_rows = cursor.fetchall()
     code_to_new_id = {row['input_code']: row['id'] for row in new_rows}
 
     # Step 3: Fetch old input_code → parent_id
-    cursor.execute(f"""SELECT id, input_code, parent_id FROM {structure_table} WHERE {id_field} = %s""", (template_id,))
+    cursor.execute(f"""SELECT id, input_code, parent_id 
+                            FROM {structure_table} WHERE {id_field} = %s""", (template_id,))
     old_rows = cursor.fetchall()
     old_id_to_code = {r['id']: r['input_code'] for r in old_rows}
     child_code_to_parent_code = {r['input_code']: old_id_to_code.get(r['parent_id']) for r in old_rows if r['parent_id']}

@@ -4,7 +4,8 @@ WHERE datname = 'dynamic_law' AND pid <> pg_backend_pid();
 
 -- Step 1: Create ENUM type for input_type
 CREATE TYPE input_type_enum AS ENUM (
-    'text/free', 
+    'text/free',
+    'text/multiple',
     'text/number', 
     'text/email', 
     'text/date', 
@@ -45,6 +46,7 @@ CREATE TABLE compliance_sheet_structure (
 -- Step 4: Create compliance_sheet_entries table
 CREATE TABLE compliance_sheet_entries (
     id SERIAL PRIMARY KEY,
+    company_id INT,
     sheet_id INT NOT NULL,
     input_code VARCHAR(50) NOT NULL,
     user_id INT NOT NULL,
@@ -138,6 +140,7 @@ CREATE TABLE company_template_mapping_history (
 -- Step 11: Create company_data_entries
 CREATE TABLE company_data_entries (
     id SERIAL PRIMARY KEY,
+    company_id INT,
     company_data_id INT NOT NULL,
     input_code VARCHAR(50) NOT NULL,
     value TEXT,

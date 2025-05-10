@@ -33,6 +33,16 @@
     const companyId = {{ company_id }};
     const datasetType = '{{ dataset_type }}';
 
+    fetch(`/company_get/${companyId}`)
+      .then(res => res.json())
+      .then(company => {
+        const title = datasetType === 'compliance'
+          ? `Compliance History for ${company.company_name}`
+          : `Corporate Data History for ${company.company_name}`;
+        document.getElementById('page-title').innerText = title;
+      });
+
+
     $(document).ready(function () {
       $('#page-title').text(datasetType === 'compliance' ? 'Compliance Sheet History' : 'Corporate Data History');
 
@@ -72,7 +82,7 @@
         const entityId = latest.sheet_id || latest.data_id;  // 👈 fix here
 
         if (entityId) {
-          window.open(`/dataset_data_input/${datasetType}/${entityId}`, '_blank');
+          window.open(`/dataset_data_input/${datasetType}/${entityId}/${companyId}`, '_blank');
         } else {
           alert("No active assignment found.");
         }

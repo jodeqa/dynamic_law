@@ -55,7 +55,7 @@
             render: function (row) {
               return `
                 <button class="btn btn-sm btn-primary" onclick="openEditWindow(${row.id})">Edit Info</button>
-                <a class="btn btn-sm btn-primary" href="/dataset_form_browser/${datasetType}/${row.id}">Edit Structure</a>
+                <a class="btn btn-sm btn-primary" href="/dataset_form_browser/${datasetType}/${row.id}/${row.search_tag}">Edit Structure</a>
                 <button class="btn btn-sm btn-success copy-btn" onclick="copyTemplate(this, ${row.id})">Copy Template</button>
               `;
             }

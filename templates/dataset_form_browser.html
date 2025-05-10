@@ -18,11 +18,16 @@
         document.addEventListener("DOMContentLoaded", async function () {
             // Ensure dataset_type is correctly assigned
             const dataset_type = "{{ dataset_type }}" !== "None" ? "{{ dataset_type }}" : null;
+            const template_name = "{{ template_name }}" !== "None" ? "{{ template_name }}" : null;
             const sheetId = "{{ sheet_id }}" !== "None" ? "{{ sheet_id }}" : null;
             const corporateId = "{{ corporate_id }}" !== "None" ? "{{ corporate_id }}" : null;
             const companyDataId  = "{{ company_data_id }}" !== "None" ? "{{ company_data_id }}" : null;
+            const title = `Template Structure of ${template_name || "Template"}`;
+            document.getElementById("browserTitle").innerText = title;
 
             let entityId = sheetId || corporateId || companyDataId;
+
+
 
             let apiUrl = `/dataset_form_tree/${dataset_type}/${entityId}`;
 
@@ -133,7 +138,8 @@
 </head>
 <body class="bg-light">
     <div class="container mt-4">
-        <h2 class="mb-4">{{ dataset_type.replace('_', ' ').title() }} Structure Browser</h2>
+        <h2 class="mb-4" id="browserTitle">Loading Structure...</h2>
+
         <button class="btn btn-primary mb-3" onclick="openNewField()">+ Add New Field</button>
         <div id="dataset-tree" class="mt-3"></div>
     </div>

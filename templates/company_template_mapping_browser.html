@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
 </head>
 <body class="p-4">
-  <h2>Company Template Assignments</h2>
+  <h2 id="mappingTitle">Company Template Assignments</h2>
 
   <div class="d-flex justify-content-between mb-3">
     <button class="btn btn-primary" onclick="assignNewTemplate()">+ Assign New Template</button>
@@ -46,6 +46,12 @@
   <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
   <script>
     const companyId = {{ company_id }};
+    fetch(`/company_get/${companyId}`)
+      .then(res => res.json())
+      .then(company => {
+        document.getElementById("mappingTitle").innerText = `Template Mapping for ${company.company_name}`;
+      });
+
 
     $(document).ready(function () {
       $('#mappingTable').DataTable({

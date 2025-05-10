@@ -3,6 +3,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Dynamic Form Input</title>
     <!-- Bootstrap 5 & FontAwesome -->
@@ -11,6 +13,16 @@
     <script>
         window.datasetType = "{{ dataset_type }}";
         window.entityId = "{{ sheet_id or corporate_id or company_data_id }}";
+        const companyId = {{ company_id or 'null' }};
+
+        fetch(`/company_get/${companyId}`)  // or use a route like `/company_get`
+          .then(res => res.json())
+          .then(company => {
+            document.getElementById("inputTitle").innerText = datasetType === "compliance"
+              ? `Fill Compliance Form for ${company.company_name}`
+              : `Fill Company Data for ${company.company_name}`;
+          });
+
 
         async function loadDatasetInput() {
             const dataset_type = "{{ dataset_type }}";
@@ -211,14 +223,23 @@
 
             const formData = new FormData(document.getElementById("dynamicForm"));
             let url = `/dataset_data_input_submit_form/${dataset_type}`;
-            if (dataset_type === 'compliance') url += `?sheet_id=${sheet_id}`;
-            if (dataset_type === 'corporate') url += `?corporate_id=${corporate_id}`;
-            if (dataset_type === 'company_data') url += `?company_data_id=${company_data_id}`;
+            let params = [];
 
+            if (dataset_type === 'compliance') params.push(`sheet_id=${sheet_id}`);
+            if (dataset_type === 'corporate') params.push(`corporate_id=${corporate_id}`);
+            if (dataset_type === 'company_data') params.push(`company_data_id=${company_data_id}`);
+            if (companyId) params.push(`company_id=${companyId}`);
+
+            if (params.length > 0) url += '?' + params.join('&');
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
             const response = await fetch(url,
             {
                 method: "POST",
-                body: formData
+                body: formData,
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
             });
 
             const result = await response.json();
@@ -244,10 +265,14 @@
             formData.append('input_code', inputCode);
             formData.append('entity_id', entityId);
             formData.append('dataset_type', datasetType);
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
             fetch('/upload_file', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
             }).then(res => res.json())
               .then(data => {
                   if (data.file_path) {
@@ -270,7 +295,7 @@
 </head>
 <body class="bg-light">
     <div class="container mt-4 p-4 bg-white shadow rounded">
-        <h2 class="text-primary text-center">Dynamic Form Input</h2>
+        <h2 id="inputTitle" class="text-primary text-center">Loading Form...</h2>
         <div id="form-container"></div>
     </div>
 </body>
