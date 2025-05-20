@@ -82,7 +82,11 @@
         const entityId = latest.sheet_id || latest.data_id;  // 👈 fix here
 
         if (entityId) {
-          window.open(`/dataset_data_input/${datasetType}/${entityId}/${companyId}`, '_blank');
+          const companyRes = await fetch(`/company_get/${companyId}`);
+          const company = await companyRes.json();
+          const corporateId = company.group_id;
+
+          window.parent.location.href = `/dataset_data_input/${datasetType}/${entityId}/${companyId}/${corporateId}?group_id=${corporateId}`;
         } else {
           alert("No active assignment found.");
         }
@@ -96,7 +100,7 @@
       if (datasetType === 'compliance') {
         window.open(`/company_template_export_pdf/${datasetType}/${companyId}/${mappingId}`, '_blank');
       } else {
-        window.open(`/dataset_data_input/${datasetType}/${mappingId}`, '_blank');
+        window.open(`/dataset_data_input/${datasetType}/${mappingId}/${companyId}`, '_blank');
       }
     }
   </script>

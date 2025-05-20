@@ -6,15 +6,31 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
 
   <h2>Corporate Groups</h2>
-  <button class="btn btn-primary mb-3" onclick="openForm()">+ New Group</button>
+  <button class="btn btn-primary mb-3" onclick="openCorporateForm()">+ New Group</button>
   <button class="btn btn-secondary mb-3" onclick="exportPDF()">Export to PDF</button>
   <table id="groupTable" class="display" style="width:100%">
     <thead>
       <tr>
-        <th>ID</th><th>Name</th><th>Description</th><th>Created</th><th>Actions</th>
+        <th>ID</th><th>Name</th><th>Description</th><th>Total Companies</th><th>Created</th><th>Actions</th>
       </tr>
     </thead>
   </table>
+
+  <!-- Modal for Corporate Form -->
+  <div class="modal fade" id="corporateFormModal" tabindex="-1" aria-labelledby="corporateFormModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="corporateFormModalLabel">Corporate Form</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <iframe id="corporateFormFrame" style="width:100%; height:600px; border:none;"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -26,12 +42,13 @@
           { data: 'id' },
           { data: 'group_name' },
           { data: 'group_description' },
+          { data: 'company_count' },
           { data: 'created_at' },
           {
             data: null,
             render: function (row) {
               return `
-                <button class='btn btn-sm btn-warning' onclick="openForm(${row.id})">Edit</button>
+                <button class='btn btn-sm btn-warning' onclick="openCorporateForm(${row.id})">Edit</button>
                 <button class='btn btn-sm btn-danger' onclick="deleteGroup(${row.id})">Delete</button>
                 <a href='/company_browser/${row.id}' class='btn btn-sm btn-info'>Companies</a>
               `;
@@ -41,34 +58,12 @@
       });
     });
 
-    function openForm(id = null) {
+    function openCorporateForm(id = null) {
+      const iframe = document.getElementById("corporateFormFrame");
       let url = '/corporate_group_form';
       if (id) url += `?edit=${id}`;
-      const width = 600;
-      const height = 500;
-
-      const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
-      const dualScreenTop = window.screenTop !== undefined ? window.screenTop : screen.top;
-
-      const windowWidth = window.innerWidth
-        ? window.innerWidth
-        : document.documentElement.clientWidth
-        ? document.documentElement.clientWidth
-        : screen.width;
-      const windowHeight = window.innerHeight
-        ? window.innerHeight
-        : document.documentElement.clientHeight
-        ? document.documentElement.clientHeight
-        : screen.height;
-
-      const left = dualScreenLeft + (windowWidth - width) / 2;
-      const top = dualScreenTop + (windowHeight - height) / 2;
-
-      window.open(
-        url,
-        '_blank',
-        `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
-      );
+      iframe.src = url;
+      new bootstrap.Modal(document.getElementById("corporateFormModal")).show();
     }
 
     function deleteGroup(id) {

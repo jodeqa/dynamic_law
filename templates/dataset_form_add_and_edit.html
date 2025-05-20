@@ -1,170 +1,29 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
+{% extends "base.html" %}
+{% block title %}Dataset Structure Editor{% endblock %}
+{% block content %}
+
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Add/Edit Field</title>
 
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
-    <script>
-        let dataset_type = "{{ dataset_type }}";
-        document.addEventListener("DOMContentLoaded", async function () {
-            const params = new URLSearchParams(window.location.search);
-            const editId = params.get("edit");
-            const addParentId = params.get("add_parent");
-            const addSiblingId = params.get("add_sibling");
-            const dataset_type = "{{ dataset_type }}";
-            const sheetId = params.get("sheet_id") || null;
-            const corporateId = params.get("corporate_id") || null;
-            const companyDataId  = "{{ company_data_id }}" || null;
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-            async function fetchFieldData(url, method = "GET") {
-              const response = await fetch(url, {
-                method,
-                headers: {
-                  'X-CSRFToken': csrfToken
-                }
-              });
-              return await response.json();
-            }
-
-            if (editId) {
-                document.getElementById("formTitle").innerText = "Edit Field";
-                const field = await fetchFieldData(`/dataset_form_get_field/${dataset_type}/${editId}`);
-
-                document.getElementById("input_code").value = field.input_code;
-                document.getElementById("input_display").value = field.input_display;
-                document.getElementById("input_type").value = field.input_type || "text/free";
-                document.getElementById("is_mandatory").checked = field.is_mandatory;
-                document.getElementById("select_value").value = field.select_value || "";
-                document.getElementById("is_upload").checked = field.is_upload;
-                document.getElementById("parent_id").value = field.parent_id || "";
-                document.getElementById("is_header").checked = field.is_header;
-
-                if (dataset_type === "corporate") {
-                    document.getElementById("corporate_id").value = field.corporate_id;
-                } else if (dataset_type === "compliance") {
-                    document.getElementById("sheet_id").value = field.sheet_id;
-                } else if (dataset_type === "company_data") {
-                    document.getElementById("sheet_id").value = field.company_data_id;
-                }
-
-                // Show parent label and sibling info in edit mode
-                let parentInfo = await fetchFieldData(`/dataset_form_get_parent_sibling_info/${dataset_type}/${field.parent_id}/${dataset_type === "corporate"
-                    ? corporateId
-                    : dataset_type === "compliance"
-                    ? sheetId
-                    : companyDataId}`);
-
-                document.getElementById("parent_display").innerText = parentInfo.parent_display || "Root";
-                document.getElementById("last_sibling_code").innerText = parentInfo.last_sibling_code || "None";
-
-                toggleInputFields();
-
-                document.getElementById("label_entity_id").innerText =
-                  dataset_type === "company_data" ? "Company Data ID:"
-                  : dataset_type === "corporate" ? "Corporate ID:"
-                  : "Compliance Sheet ID:";
-            } else if (addParentId) {
-                document.getElementById("formTitle").innerText = "Add New Child";
-                document.getElementById("parent_id").value = addParentId;
-
-                let apiUrl = `/dataset_form_get_parent_sibling_info/${dataset_type}/${addParentId}/${dataset_type === "corporate"
-                    ? corporateId
-                    : dataset_type === "compliance"
-                    ? sheetId
-                    : companyDataId}`;
-                const data = await fetchFieldData(apiUrl);
-
-                document.getElementById("parent_display").innerText = data.parent_display || "Root";
-                document.getElementById("last_sibling_code").innerText = data.last_sibling_code || "None";
-                document.getElementById("input_code").value = data.next_input_code;
-            } else if (addSiblingId) {
-                document.getElementById("formTitle").innerText = "Add New Sibling";
-
-                let apiUrl = `/dataset_form_get_parent_sibling_info/${dataset_type}/${addSiblingId}/${dataset_type === "corporate"
-                    ? corporateId
-                    : dataset_type === "compliance"
-                    ? sheetId
-                    : companyDataId}`;
-                const data = await fetchFieldData(apiUrl);
-
-                document.getElementById("parent_display").innerText = data.parent_display || "Root";
-                document.getElementById("last_sibling_code").innerText = data.last_sibling_code || "None";
-                document.getElementById("input_code").value = data.next_input_code;
-
-                // ✅ Correctly assign parent_id from fetched parent
-                document.getElementById("parent_id").value = data.parent_id || "";
-            }
-
-
-            loadComplianceSheets();
-        });
-
-        function toggleInputFields() {
-            const isHeader = document.getElementById("is_header").checked;
-            document.getElementById("input_type").disabled = isHeader;
-            document.getElementById("is_mandatory").disabled = isHeader;
-            document.getElementById("select_value").disabled = isHeader;
-            document.getElementById("is_upload").disabled = isHeader;
-        }
-
-        async function saveField() {
-            const params = new URLSearchParams(window.location.search);
-            const editId = params.get("edit");
-            const dataset_type = "{{ dataset_type }}";
-            const sheetId = params.get("sheet_id") || null;
-            const corporateId = params.get("corporate_id") || null;
-            const companyDataId = params.get("company_data_id") || null;
-
-            const data = {
-                input_code: document.getElementById("input_code").value,
-                input_display: document.getElementById("input_display").value,
-                input_type: document.getElementById("input_type").value,
-                is_mandatory: document.getElementById("is_mandatory").checked,
-                select_value: document.getElementById("select_value").value,
-                is_upload: document.getElementById("is_upload").checked,
-                parent_id: document.getElementById("parent_id").value || null,
-                is_header: document.getElementById("is_header").checked,
-                sheet_id: dataset_type === "compliance" ? sheetId : null,
-                corporate_id: dataset_type === "corporate" ? corporateId : null,
-                company_data_id: dataset_type === "company_data" ? companyDataId : null
-            };
-
-            let url = editId ? `/dataset_form_edit_field/${dataset_type}/${editId}` : `/dataset_form_add_field/${dataset_type}`;
-            let method = editId ? "PUT" : "POST";
-
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-
-            const response = await fetch(url, {
-              method: method,
-              headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": csrfToken
-              },
-              body: JSON.stringify(data)
-            });
-
-            const result = await response.json();
-            alert(result.message);
-            window.opener.location.reload();
-            window.close();
-        }
-    </script>
-</head>
-<body class="bg-light">
     <div class="container mt-4 p-4 bg-white shadow rounded">
         <h2 id="formTitle" class="text-center text-primary">Add/Edit Field</h2>
+        <nav aria-label="breadcrumb" class="mb-3">
+          <ol class="breadcrumb bg-light px-3 py-2 rounded shadow-sm">
+            <li class="breadcrumb-item">
+              <a href="/dataset_form_browser/{{ dataset_type }}/{{ sheet_id or corporate_id or company_data_id }}/Template">
+                Back to Structure
+              </a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">
+              Edit/Add Field
+            </li>
+          </ol>
+        </nav>
 
         <form>
             <div class="mb-3">
                 <label class="form-label" id="label_entity_id">Template ID:</label>
-                <input id="sheet_id" type="number" class="form-control" required>
+                <input id="sheet_id" type="number" class="form-control" readonly>
             </div>
 
             <div class="mb-3">
@@ -259,5 +118,174 @@
             </button>
         </form>
     </div>
-</body>
-</html>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        let dataset_type = "{{ dataset_type }}";
+
+        document.addEventListener("DOMContentLoaded", async function () {
+            const params = new URLSearchParams(window.location.search);
+
+            const editId = params.get("edit");
+            const addParentId = params.get("add_parent");
+            const addSiblingId = params.get("add_sibling");
+            const dataset_type = "{{ dataset_type }}";
+            const sheetId = params.get("sheet_id") || null;
+            const corporateId = params.get("corporate_id") || null;
+            const companyDataId  = params.get("company_data_id") || null;
+
+            const inputCode = params.get("input_code");
+            const isHeader = params.get("is_header") === "true";
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+            async function fetchFieldData(url, method = "GET") {
+              const response = await fetch(url, {
+                method,
+                headers: {
+                  'X-CSRFToken': csrfToken
+                }
+              });
+              return await response.json();
+            }
+
+            if (editId) {
+                const field = await fetchFieldData(`/dataset_form_get_field/${dataset_type}/${editId}`);
+
+                document.getElementById("formTitle").innerText = `Edit Field: "${field.input_display}"`;
+
+                document.getElementById("input_code").value = field.input_code;
+                document.getElementById("input_display").value = field.input_display;
+                document.getElementById("input_type").value = field.input_type || "text/free";
+                document.getElementById("is_mandatory").checked = field.is_mandatory;
+                document.getElementById("select_value").value = field.select_value || "";
+                document.getElementById("is_upload").checked = field.is_upload;
+                document.getElementById("parent_id").value = field.parent_id || "";
+                document.getElementById("is_header").checked = field.is_header;
+
+                if (dataset_type === "corporate") {
+                    document.getElementById("corporate_id").value = field.corporate_id;
+                } else if (dataset_type === "compliance") {
+                    document.getElementById("sheet_id").value = field.sheet_id;
+                } else if (dataset_type === "company_data") {
+                    document.getElementById("sheet_id").value = field.company_data_id;
+                }
+
+                // Show parent label and sibling info in edit mode
+                let parentInfo = await fetchFieldData(`/dataset_form_get_parent_sibling_info/${dataset_type}/${field.parent_id}/${dataset_type === "corporate"
+                    ? corporateId
+                    : dataset_type === "compliance"
+                    ? sheetId
+                    : companyDataId}`);
+
+                document.getElementById("parent_display").innerText = parentInfo.parent_display || "Root";
+                document.getElementById("last_sibling_code").innerText = parentInfo.last_sibling_code || "None";
+
+                toggleInputFields();
+
+                document.getElementById("label_entity_id").innerText =
+                  dataset_type === "company_data" ? "Company Data ID:"
+                  : dataset_type === "corporate" ? "Corporate ID:"
+                  : "Compliance Sheet ID:";
+            } else if (addParentId) {
+                document.getElementById("formTitle").innerText = "Add New Child";
+                document.getElementById("parent_id").value = addParentId;
+
+                let apiUrl = `/dataset_form_get_parent_sibling_info/${dataset_type}/${addParentId}/${dataset_type === "corporate"
+                    ? corporateId
+                    : dataset_type === "compliance"
+                    ? sheetId
+                    : companyDataId}`;
+                const data = await fetchFieldData(apiUrl);
+
+                document.getElementById("parent_display").innerText = data.parent_display || "Root";
+                document.getElementById("last_sibling_code").innerText = data.last_sibling_code || "None";
+                document.getElementById("input_code").value = data.next_input_code;
+            } else if (addSiblingId) {
+                document.getElementById("formTitle").innerText = "Add New Sibling";
+
+                let apiUrl = `/dataset_form_get_parent_sibling_info/${dataset_type}/${addSiblingId}/${dataset_type === "corporate"
+                    ? corporateId
+                    : dataset_type === "compliance"
+                    ? sheetId
+                    : companyDataId}`;
+                const data = await fetchFieldData(apiUrl);
+
+                document.getElementById("parent_display").innerText = data.parent_display || "Root";
+                document.getElementById("last_sibling_code").innerText = data.last_sibling_code || "None";
+                document.getElementById("input_code").value = data.next_input_code;
+
+                // ✅ Correctly assign parent_id from fetched parent
+                document.getElementById("parent_id").value = data.parent_id || "";
+            } else if (inputCode) {
+                document.getElementById("formTitle").innerText = "Add Top Level Header";
+                document.getElementById("label_entity_id").innerText =
+                  dataset_type === "company_data" ? "Company Data ID:"
+                  : dataset_type === "corporate" ? "Corporate ID:"
+                  : "Compliance Sheet ID:";
+                if (dataset_type === "corporate") {
+                    document.getElementById("sheet_id").value = corporateId;
+                } else if (dataset_type === "compliance") {
+                    document.getElementById("sheet_id").value = sheetId;
+                } else if (dataset_type === "company_data") {
+                    document.getElementById("sheet_id").value = companyDataId;
+                }
+                document.getElementById("input_code").value = inputCode;
+                document.getElementById("is_header").checked = isHeader;
+                toggleInputFields();
+            }
+
+            loadComplianceSheets();
+        });
+
+        function toggleInputFields() {
+            const isHeader = document.getElementById("is_header").checked;
+            document.getElementById("input_type").disabled = isHeader;
+            document.getElementById("is_mandatory").disabled = isHeader;
+            document.getElementById("select_value").disabled = isHeader;
+            document.getElementById("is_upload").disabled = isHeader;
+        }
+
+        async function saveField() {
+            const params = new URLSearchParams(window.location.search);
+            const editId = params.get("edit");
+            const dataset_type = "{{ dataset_type }}";
+            const sheetId = params.get("sheet_id") || null;
+            const corporateId = params.get("corporate_id") || null;
+            const companyDataId = params.get("company_data_id") || null;
+
+            const data = {
+                input_code: document.getElementById("input_code").value,
+                input_display: document.getElementById("input_display").value,
+                input_type: document.getElementById("input_type").value,
+                is_mandatory: document.getElementById("is_mandatory").checked,
+                select_value: document.getElementById("select_value").value,
+                is_upload: document.getElementById("is_upload").checked,
+                parent_id: document.getElementById("parent_id").value || null,
+                is_header: document.getElementById("is_header").checked,
+                sheet_id: dataset_type === "compliance" ? sheetId : null,
+                corporate_id: dataset_type === "corporate" ? corporateId : null,
+                company_data_id: dataset_type === "company_data" ? companyDataId : null
+            };
+
+            let url = editId ? `/dataset_form_edit_field/${dataset_type}/${editId}` : `/dataset_form_add_field/${dataset_type}`;
+            let method = editId ? "PUT" : "POST";
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+            const response = await fetch(url, {
+              method: method,
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken
+              },
+              body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            alert(result.message);
+            window.opener.location.reload();
+            window.close();
+        }
+    </script>
+{% endblock %}

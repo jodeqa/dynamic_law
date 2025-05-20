@@ -31,6 +31,19 @@
   </form>
 
   <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const tagInput = document.querySelector('[name="search_tag"]');
+      const templateId = document.querySelector('[name="template_id"]').value;
+
+      if (!templateId) {
+        fetch(`/dataset_template_next_tag/${document.getElementById("datasetType").value}`)
+          .then(res => res.json())
+          .then(data => {
+            if (!tagInput.value) tagInput.value = data.next_tag;
+          });
+      }
+    });
+
     function submitForm() {
       const datasetType = document.getElementById("datasetType").value;
       const form = document.getElementById('templateForm');

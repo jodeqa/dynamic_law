@@ -1,0 +1,77 @@
+<!-- dataset_data_input_subset.html -->
+{% extends layout_template %}
+{% block title %}Subset Preview: {{ dataset_type }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4 p-4 bg-white shadow rounded">
+  <h5 class="text-center mb-4">
+    <span class="badge bg-info">Preview: {{ dataset_type | capitalize }} / {{ input_code }}</span>
+  </h5>
+  <div id="form-container"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const datasetType = "{{ dataset_type }}";
+  const inputCode = "{{ input_code }}";
+  const sheetId = "{{ sheet_id }}" !== "None" ? "{{ sheet_id }}" : null;
+  const corporateId = "{{ corporate_id }}" !== "None" ? "{{ corporate_id }}" : null;
+  const companyDataId = "{{ company_data_id }}" !== "None" ? "{{ company_data_id }}" : null;
+  const entityId = sheetId || corporateId || companyDataId;
+
+  async function loadSubsetPreview() {
+    const url = `/dataset_data_input_get_dataset_structure/${datasetType}/${entityId}/${inputCode}`;
+    console.log("📥 Subset Preview Fetch:", url);
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const container = document.getElementById("form-container");
+    container.innerHTML = `
+      <form>
+        <div class="accordion" id="datasetSubsetAccordion">
+          ${createForm(data, data.length > 0 ? data[0].parent_id : null)}
+        </div>
+      </form>
+    `;
+
+    function createForm(data, parentId) {
+      const items = data.filter(d => d.parent_id == parentId);
+      if (!items || !items.length) return "";
+
+      let html = "";
+      items.forEach(item => {
+        if (item.is_header) {
+          const collapseId = `collapse_${item.input_code.replace(/\./g, "_")}`;
+          html += `
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="heading_${collapseId}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="false" aria-controls="${collapseId}">
+                  ${item.input_display}
+                </button>
+              </h2>
+              <div id="${collapseId}" class="accordion-collapse collapse" aria-labelledby="heading_${collapseId}">
+                <div class="accordion-body">
+                  ${createForm(data, item.id)}
+                </div>
+              </div>
+            </div>`;
+        } else {
+          html += `<div class="mb-3"><label>${item.input_display}</label>`;
+          if (item.input_type?.startsWith("text/")) {
+            html += `<input type="text" class="form-control" disabled>`;
+          } else if (item.input_type?.startsWith("select/")) {
+            html += `<select class="form-select" disabled><option>Sample Option</option></select>`;
+          } else if (item.is_upload) {
+            html += `<input type="file" class="form-control" disabled>`;
+          }
+          html += `</div>`;
+        }
+      });
+      return html;
+    }
+  }
+
+  window.onload = loadSubsetPreview;
+</script>
+{% endblock %}

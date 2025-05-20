@@ -74,7 +74,7 @@ app.config.update(
 
 
 class AdminUser(UserMixin):
-    def __init__(self, id):
+    def __init__(self, id):  # noqa
         self.id = id
 
 
@@ -298,6 +298,12 @@ def download_file():
             return send_file(io.BytesIO(zf.read(name)), download_name=name)
 
 
+@app.after_request
+def allow_iframe(response):
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    return response
+
+
 # ROUTES =============================================================================================================
 # --- Entry Point ---
 @app.route('/')
@@ -313,7 +319,7 @@ def login():
 
 @csrf.exempt
 @app.route('/login_check', methods=['POST'])
-@limiter.limit("5 per minute")
+# @limiter.limit("5 per minute")
 def login_check():
     """
     Route: /login_check
@@ -355,23 +361,50 @@ def index():
 
 
 # --- Dataset ---
-@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>', defaults={'company_id': None, 'input_code': None})
-@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>/<int:company_id>', defaults={'input_code': None})
-@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>/<int:company_id>/<input_code>')
-def dataset_data_input(dataset_type, entity_id, company_id, input_code):
+@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>', defaults={'company_id': None, 'corporate_id': None, 'input_code': None})
+@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>/<int:company_id>', defaults={'corporate_id': None, 'input_code': None})
+@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>/<int:company_id>/<int:corporate_id>', defaults={'input_code': None})
+@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>/<int:company_id>/<int:corporate_id>/<input_code>')
+def dataset_data_input(dataset_type, entity_id, company_id, corporate_id, input_code):
     """
     Route: /dataset_data_input/<dataset_type>/<entity_id>
     Purpose: Show dynamic input form to fill data (company data or compliance).
     Called from: dataset_data_input.html
     Calls: dataset_data_input_get_dataset_structure()
     """
+    layout_template = request.args.get("layout_template", "base.html")
+
     return render_template("dataset_data_input.html",
                            dataset_type=dataset_type,
                            company_id=company_id,
+                           corporate_id=corporate_id,
                            sheet_id=entity_id if dataset_type == "compliance" else None,
-                           corporate_id=entity_id if dataset_type == "corporate" else None,
                            company_data_id=entity_id if dataset_type == "company_data" else None,
-                           input_code=input_code)
+                           input_code=input_code,
+                           layout_template=layout_template)
+
+
+@app.route('/dataset_data_input_subset.html')
+def dataset_data_input_subset():
+    """
+    Route: /dataset_data_input_subset.html
+    Purpose: Renders a partial view of a dataset starting from a specific input_code.
+    Called from: dataset_form_browser.html preview buttons.
+    """
+    dataset_type = request.args.get("dataset_type")
+    input_code = request.args.get("input_code")
+    layout_template = request.args.get("layout_template", "base_modal.html")
+    sheet_id = request.args.get("sheet_id")
+    corporate_id = request.args.get("corporate_id")
+    company_data_id = request.args.get("company_data_id")
+
+    return render_template("dataset_data_input_subset.html",
+                           dataset_type=dataset_type,
+                           input_code=input_code,
+                           sheet_id=sheet_id if sheet_id != "None" else None,
+                           corporate_id=corporate_id if corporate_id != "None" else None,
+                           company_data_id=company_data_id if company_data_id != "None" else None,
+                           layout_template=layout_template)
 
 
 @app.route('/dataset_data_input_get_dataset_structure/<dataset_type>/<int:entity_id>', defaults={'input_code': None})
@@ -533,7 +566,13 @@ def corporate_group_data():
     """
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cursor.execute("SELECT id, group_name, group_description, created_at FROM corporate_group ORDER BY id")
+    cursor.execute("""
+      SELECT g.*, (
+        SELECT COUNT(*) FROM company_structure c WHERE c.group_id = g.id
+      ) AS company_count
+      FROM corporate_group g
+      ORDER BY g.id
+    """)
     data = cursor.fetchall()
     conn.close()
     return jsonify({"data": data})
@@ -647,7 +686,7 @@ def company_form():
 
 
 @app.route('/company_get/<int:id>')
-def company_get(id):
+def company_get(id):  # noqa
     """
     Route: /company_get/<id>
     Purpose: Fetches single company data by ID (used in edit modal).
@@ -695,7 +734,7 @@ def company_save():
 
 
 @app.route('/company_delete/<int:id>', methods=['DELETE'])
-def company_delete(id):
+def company_delete(id):  # noqa
     """
     Route: /company_delete/<id>
     Purpose: Deletes a company from the hierarchy.
@@ -1031,7 +1070,8 @@ def copy_template(dataset_type, template_id):
                             FROM {structure_table} WHERE {id_field} = %s""", (template_id,))
     old_rows = cursor.fetchall()
     old_id_to_code = {r['id']: r['input_code'] for r in old_rows}
-    child_code_to_parent_code = {r['input_code']: old_id_to_code.get(r['parent_id']) for r in old_rows if r['parent_id']}
+    child_code_to_parent_code = \
+        {r['input_code']: old_id_to_code.get(r['parent_id']) for r in old_rows if r['parent_id']}
 
     # Step 4: Update parent_id in new structure
     for child_code, parent_code in child_code_to_parent_code.items():
@@ -1114,6 +1154,55 @@ def company_template_list(dataset_type, company_id):
     else:
         return jsonify({"error": "Invalid dataset_type"}), 400
 
+    results = cursor.fetchall()
+    conn.close()
+    return jsonify({"data": results})
+
+
+@app.route('/company_template_mapping_all')
+def company_template_mapping_all():
+    """
+    Route: /company_template_mapping_all
+    Purpose: Returns all mappings for all companies for quick lookup in browser.
+    Used in: company_browser.html to check which company has compliance/data mappings.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute("""
+        SELECT
+          m.company_id,
+          m.company_data_id,
+          m.compliance_sheet_id,
+        
+          -- Company Data % complete
+          ROUND(
+            COUNT(DISTINCT s_cd.id) FILTER (
+              WHERE s_cd.is_header = FALSE
+                AND ((e_cd.value IS NOT NULL AND TRIM(e_cd.value) <> '') OR (e_cd.file_path IS NOT NULL AND TRIM(e_cd.file_path) <> ''))
+            ) * 100.0 /
+            NULLIF(COUNT(DISTINCT s_cd.id) FILTER (WHERE s_cd.is_header = FALSE), 0)
+          )::int AS company_data_completion,
+        
+          -- Compliance Sheet % complete
+          ROUND(
+            COUNT(DISTINCT s_cs.id) FILTER (
+              WHERE s_cs.is_header = FALSE
+                AND ((e_cs.value IS NOT NULL AND TRIM(e_cs.value) <> '') OR (e_cs.file_path IS NOT NULL AND TRIM(e_cs.file_path) <> ''))
+            ) * 100.0 /
+            NULLIF(COUNT(DISTINCT s_cs.id) FILTER (WHERE s_cs.is_header = FALSE), 0)
+          )::int AS compliance_completion
+        
+        FROM company_template_mapping m
+        LEFT JOIN company_data_structure s_cd ON s_cd.company_data_id = m.company_data_id
+        LEFT JOIN company_data_entries e_cd
+          ON e_cd.company_data_id = s_cd.company_data_id AND e_cd.input_code = s_cd.input_code AND e_cd.company_id = m.company_id
+        
+        LEFT JOIN compliance_sheet_structure s_cs ON s_cs.sheet_id = m.compliance_sheet_id
+        LEFT JOIN compliance_sheet_entries e_cs
+          ON e_cs.sheet_id = s_cs.sheet_id AND e_cs.input_code = s_cs.input_code AND e_cs.company_id = m.company_id
+        
+        GROUP BY m.company_id, m.company_data_id, m.compliance_sheet_id
+    """)
     results = cursor.fetchall()
     conn.close()
     return jsonify({"data": results})
@@ -1295,7 +1384,8 @@ def company_template_mapping_form():
     return render_template("company_template_mapping_form.html",
                            company_id=company_id,
                            sheets=sheets,
-                           templates=templates)
+                           templates=templates,
+                           layout_template="base_modal.html")
 
 
 # --- Company Template Mapping History ---
@@ -1311,7 +1401,7 @@ def company_template_mapping_history(company_id):
     cursor.execute("""
         SELECT h.id, h.year, h.link_description, 
                cd.company_data_description, cs.sheet_description,
-               h.action, h.action_time
+               h.action_type, h.action_time
         FROM company_template_mapping_history h
         LEFT JOIN company_data_browse cd ON h.company_data_id = cd.id
         LEFT JOIN compliance_sheet_browse cs ON h.compliance_sheet_id = cs.id
@@ -1451,17 +1541,17 @@ def dataset_template_save(dataset_type):
 # Error Handler for Uniform JSON ======================================================================================
 
 @app.errorhandler(404)
-def page_not_found(e):
+def page_not_found(e):  # noqa
     return jsonify({"error": "Not Found"}), 404
 
 
 @app.errorhandler(405)
-def method_not_allowed(e):
+def method_not_allowed(e):  # noqa
     return jsonify({"error": "Method Not Allowed"}), 405
 
 
 @app.errorhandler(500)
-def internal_error(e):
+def internal_error(e):  # noqa
     return jsonify({"error": "Internal Server Error"}), 500
 
 

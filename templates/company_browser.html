@@ -16,22 +16,71 @@
     .tree-toggle:hover {
       text-decoration: underline;
     }
+    .list-group-item:hover {
+      background-color: #f2f2f2;
+      transition: background-color 0.2s;
+    }
+
+    #companyTable tbody tr:hover {
+      background-color: #f9f9f9;
+      transition: background-color 0.2s;
+    }
+
+    #companyTable.table-hover tbody tr:hover {
+      background-color: #f8f9fa !important;
+    }
   </style>
+
   {% endblock %}
+
+  <nav aria-label="breadcrumb" class="mb-3 mt-2">
+    <ol class="breadcrumb bg-light px-3 py-2 rounded shadow-sm">
+      <li class="breadcrumb-item">
+        <a href="/corporate_group_browser">← Back to Corporate Groups</a>
+      </li>
+      <li class="breadcrumb-item active" aria-current="page">
+        Company Hierarchy
+      </li>
+    </ol>
+  </nav>
 
   <h2>Companies under Corporate Group <span class="text-primary" id="groupName">[Group Name]</span></h2>
 
-  <button class="btn btn-primary mb-2" onclick="openCompanyForm()">+ New Company</button>
+  <button class="btn btn-primary mb-2" onclick="openNewTopLevelCompany()">+ New Company</button>
   <button class="btn btn-outline-secondary mb-2" onclick="toggleView()">Toggle Table/Tree</button>
   <div id="tree-container" class="mt-3"></div>
   <div id="table-container" class="mt-3" style="display:none">
-    <table id="companyTable" class="table table-bordered">
-      <thead><tr><th>Code</th><th>Name</th><th>Next Inspection</th><th>Actions</th></tr></thead>
+    <table id="companyTable" class="table table-bordered table-hover">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Name</th>
+          <th>Next Inspection</th>
+          <th>Company Data</th>
+          <th>Compliance</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
       <tbody></tbody>
     </table>
   </div>
 
-    <!-- Modal for Compliance Management -->
+  <!-- Modal for Company Form -->
+  <div class="modal fade" id="companyFormModal" tabindex="-1" aria-labelledby="companyFormModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="companyFormModalLabel">Company Form</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <iframe id="companyFormFrame" style="width:100%; height:600px; border:none;"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Compliance Management -->
   <div class="modal fade" id="complianceModal" tabindex="-1" aria-labelledby="complianceModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
@@ -60,11 +109,29 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal for Mapping Management -->
+  <div class="modal fade" id="mappingModal" tabindex="-1" aria-labelledby="mappingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="mappingModalLabel">Template Mapping</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <iframe id="mappingFrame" style="width:100%; height:900px; border:none;"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
 {% endblock %}
 
 {% block scripts %}
   <script>
+    let fullCompanyData = [];
     const groupId = {{ group_id }};
+
     fetch(`/corporate_group_data`)
       .then(res => res.json())
       .then(json => {
@@ -74,10 +141,23 @@
         }
       });
 
-
     async function loadTree() {
-      const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+      const mappingRes = await fetch('/company_template_mapping_all');
+      const mappingJson = await mappingRes.json();
+      const mappingData = mappingJson.data || [];  // get the actual array
+      const companyHasMapping = {};
 
+      mappingData.forEach(m => {
+        companyHasMapping[m.company_id] = {
+          hasCompliance: !!m.compliance_sheet_id,
+          hasCompanyData: !!m.company_data_id,
+          compliance_completion: m.compliance_completion ?? 0,
+          company_data_completion: m.company_data_completion ?? 0
+        };
+      });
+      window.companyHasMapping = companyHasMapping;
+
+      const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
       const res = await fetch(`/company_tree_data/${groupId}`, {
           method: 'GET',
           headers: {
@@ -85,53 +165,141 @@
           }
         });
       const data = await res.json();
+      fullCompanyData = data;
+
       document.getElementById('tree-container').innerHTML = renderTree(data);
       renderTable(data);
     }
 
     function renderTree(data) {
-      let idCounter = 0;
-      function build(parentId = null) {
-        const nodes = data.filter(d => d.parent_id === parentId);
-        if (!nodes.length) return '';
-        let html = '<ul class="list-group ms-3">';
-        nodes.forEach(node => {
-          const hasChildren = data.some(d => d.parent_id === node.id);
-          const subtreeId = `subtree-${idCounter++}`;
-          html += `<li class="list-group-item">
-              ${hasChildren ? `<span class="tree-toggle" onclick="toggleSubtree('${subtreeId}')">▶</span>` : ''}
-              <strong>${node.input_code} - ${node.company_name}</strong>
+      const childrenMap = groupBy(data, 'parent_id');
+
+      function build(parentId) {
+        const children = childrenMap[parentId] || [];
+        let html = '<ul class="list-group">';
+
+        children.forEach((node, index) => {
+          const isLast = index === children.length - 1;
+          const subtree = build(node.id);
+          const subtreeId = `tree-${node.id}`;
+          const subChildren = childrenMap[node.id] || [];
+          const hasChildren = subChildren.length > 0;
+
+          const mapping = companyHasMapping[node.id] || {};
+          const showCompliance = mapping.hasCompliance;
+          const showCompanyData = mapping.hasCompanyData;
+
+          const newBtn = isLast ? `<li><a class="dropdown-item" href="#" onclick="openCompanyForm(null, ${node.id}, '${getNextInputCode(node.input_code)}')">+ Sibling</a></li>` : '';
+          const nextChildCode = getNextInputCodeForChildren(node.id, node.input_code);
+
+          let statusBadge = '';
+          if (mapping.hasCompanyData) {
+            statusBadge += `<span class="badge ${getStatusColor(mapping.company_data_completion)} me-1">
+              Data: ${getStatusLabel(mapping.company_data_completion)}
+            </span>`;
+          }
+          if (mapping.hasCompliance) {
+            statusBadge += `<span class="badge ${getStatusColor(mapping.compliance_completion)}">
+              Compliance: ${getStatusLabel(mapping.compliance_completion)}
+            </span>`;
+          }
+          if (!mapping.hasCompanyData && !mapping.hasCompliance) {
+            statusBadge = `<span class="badge bg-danger">– No Mapping</span>`;
+          }
+
+          html += `
+            <li class="list-group-item">
+              ${hasChildren ? `<span class="tree-toggle" onclick="toggleSubtree('${subtreeId}')"><i class="fa-regular ${parentId === null ? 'fa-square-minus' : 'fa-square-plus'}"></i></span>` : ''}
+              <strong>${node.input_code} - ${node.company_name}</strong> ${statusBadge}
+              ${parentId === null ? `<span class="badge bg-primary">${subChildren.length} sub</span>` : ""}
               <span class="float-end">
-                <button class="btn btn-sm btn-warning" onclick="openCompanyForm(${node.id})">Edit</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteCompany(${node.id})">Delete</button>
-                <button class="btn btn-sm btn-info" onclick="openComplianceModal(${node.id})">Compliance</button>
-                <button class="btn btn-sm btn-info" onclick="openCompanyDataModal(${node.id})">Data</button>
-                <button class="btn btn-sm btn-outline-info" onclick="openMapping(${node.id})">Mapping</button>
+                ${showCompliance ? `<button class="btn btn-sm btn-info" onclick="openComplianceModal(${node.id})">Compliance</button>` : ''}
+                ${showCompanyData ? `<button class="btn btn-sm btn-info" onclick="openCompanyDataModal(${node.id})">Data</button>` : ''}
+
+                <div class="btn-group">
+                  <button type="button" class="btn btn-sm btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    Menu
+                  </button>
+                  <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="openMapping(${node.id})">Mapping</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="openCompanyForm(${node.id})">Edit</a></li>
+                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteCompany(${node.id})">Delete</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="openCompanyForm(null, ${node.id}, '${nextChildCode}')">+ Child</a></li>
+                    ${isLast ? `<li><a class="dropdown-item" href="#" onclick="openCompanyForm(null, ${node.parent_id}, '${getNextInputCode(node.input_code)}')">+ Sibling</a></li>` : ''}
+                  </ul>
+                </div>
               </span>
-              <div id="${subtreeId}" style="display: none;">${build(node.id)}</div>
+              <div id="${subtreeId}" style="display:${parentId === null ? 'block' : 'none'}">${subtree}</div>
+
             </li>`;
+
         });
+
         html += '</ul>';
         return html;
       }
-      return build();
+
+      return build(null);
     }
 
     function renderTable(data) {
       const tbody = document.querySelector("#companyTable tbody");
       tbody.innerHTML = '';
-      data.forEach(row => {
+      const parentMap = groupBy(data, 'parent_id');
+
+      data.forEach((row, index) => {
+        const mapping = companyHasMapping[row.id] || {};
+        const showCompliance = mapping.hasCompliance;
+        const showCompanyData = mapping.hasCompanyData;
+
+        const siblings = parentMap[row.parent_id] || [];
+        const isLast = siblings[siblings.length - 1]?.id === row.id;
+        const nextSiblingCode = isLast ? getNextInputCode(row.input_code) : null;
+        const nextChildCode = getNextInputCodeForChildren(row.id, row.input_code);
+
         tbody.innerHTML += `
           <tr>
             <td>${row.input_code}</td>
             <td>${row.company_name}</td>
-            <td>${row.next_inpection_date || '-'}</td>
+            <td>${row.next_inspection_date || '-'}</td>
             <td>
-              <button class="btn btn-sm btn-warning" onclick="openCompanyForm(${row.id})">Edit</button>
-              <button class="btn btn-sm btn-danger" onclick="deleteCompany(${row.id})">Delete</button>
-              <button class="btn btn-sm btn-info" onclick="openComplianceModal(${row.id})">Compliance</button>
-              <button class="btn btn-sm btn-info" onclick="openCompanyDataModal(${row.id})">Data</button>
-              <button class="btn btn-sm btn-outline-info" onclick="openMapping(${row.id})">Mapping</button>
+              ${
+                mapping.hasCompanyData
+                  ? `<span class="badge ${getStatusColor(mapping.company_data_completion)}">
+                      ${getStatusLabel(mapping.company_data_completion)}
+                    </span>`
+                  : `<span class="badge bg-danger">–</span>`
+              }
+            </td>
+            <td>
+              ${
+                mapping.hasCompliance
+                  ? `<span class="badge ${getStatusColor(mapping.compliance_completion)}">
+                      ${getStatusLabel(mapping.compliance_completion)}
+                    </span>`
+                  : `<span class="badge bg-danger">–</span>`
+              }
+            </td>
+            <td>
+              ${showCompliance ? `<button class="btn btn-sm btn-info" onclick="openComplianceModal(${row.id})">Compliance</button>` : ''}
+              ${showCompanyData ? `<button class="btn btn-sm btn-info" onclick="openCompanyDataModal(${row.id})">Data</button>` : ''}
+
+              <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                  Menu
+                </button>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="#" onclick="openMapping(${row.id})">Mapping</a></li>
+                  <li><a class="dropdown-item" href="#" onclick="openCompanyForm(${row.id})">Edit</a></li>
+                  <li><a class="dropdown-item text-danger" href="#" onclick="deleteCompany(${row.id})">Delete</a></li>
+                  <li><a class="dropdown-item" href="#" onclick="openCompanyForm(null, ${row.id}, '${nextChildCode}')">+ Child</a></li>
+                  ${
+                    nextSiblingCode
+                      ? `<li><a class="dropdown-item" href="#" onclick="openCompanyForm(null, ${row.parent_id}, '${nextSiblingCode}')">+ Sibling</a></li>`
+                      : ''
+                  }
+                </ul>
+              </div>
             </td>
           </tr>
         `;
@@ -147,40 +315,51 @@
 
     function toggleSubtree(id) {
       const el = document.getElementById(id);
-      if (el) {
-        el.style.display = el.style.display === 'none' ? 'block' : 'none';
+      if (!el) return;
+
+      const icon = el.previousElementSibling?.querySelector("i.fa-regular");
+
+      if (el.style.display === 'none') {
+        el.style.display = 'block';
+        if (icon) {
+          icon.classList.remove('fa-square-plus');
+          icon.classList.add('fa-square-minus');
+        }
+      } else {
+        el.style.display = 'none';
+        if (icon) {
+          icon.classList.remove('fa-square-minus');
+          icon.classList.add('fa-square-plus');
+        }
       }
     }
 
-    function openCompanyForm(id = null) {
+
+    function getNextInputCode(code) {
+      const parts = code.split('.');
+      const last = parseInt(parts[parts.length - 1] || '0');
+      parts[parts.length - 1] = (last + 1).toString();
+      return parts.join('.');
+    }
+
+    function getNextInputCodeForChildren(parentId, parentCode) {
+      const children = fullCompanyData.filter(d => d.parent_id === parentId);
+      if (children.length === 0) return `${parentCode}.1`;
+
+      const last = children[children.length - 1];
+      const parts = last.input_code.split('.');
+      parts[parts.length - 1] = (parseInt(parts[parts.length - 1]) + 1).toString();
+      return parts.join('.');
+    }
+
+    function openCompanyForm(id = null, parentId = null, autoCode = '') {
+      const iframe = document.getElementById("companyFormFrame");
       let url = `/company_form.html?group_id=${groupId}`;
       if (id) url += `&edit=${id}`;
-
-      const width = 600;
-      const height = 500;
-
-      // Get browser screen position
-      const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
-      const dualScreenTop = window.screenTop !== undefined ? window.screenTop : screen.top;
-
-      const windowWidth = window.innerWidth
-        ? window.innerWidth
-        : document.documentElement.clientWidth
-        ? document.documentElement.clientWidth
-        : screen.width;
-      const windowHeight = window.innerHeight
-        ? window.innerHeight
-        : document.documentElement.clientHeight
-        ? document.documentElement.clientHeight
-        : screen.height;
-
-      const left = dualScreenLeft + (windowWidth - width) / 2;
-      const top = dualScreenTop + (windowHeight - height) / 2;
-
-      const features = `scrollbars=yes,resizable=yes,width=${width},height=${height},top=${top},left=${left}`;
-
-      // Use a consistent name to force separate popup instead of tab
-      window.open(url, 'CompanyFormWindow', features);
+      if (parentId) url += `&parent_id=${parentId}`;
+      if (autoCode) url += `&auto_code=${encodeURIComponent(autoCode)}`;
+      iframe.src = url;
+      new bootstrap.Modal(document.getElementById("companyFormModal")).show();
     }
 
     async function deleteCompany(id) {
@@ -208,29 +387,40 @@
     }
 
     function openMapping(companyId) {
-      const width = 1000;
-      const height = 500;
+      const iframe = document.getElementById("mappingFrame");
+      iframe.src = `/company_template_mapping_browser/${companyId}`;
+      new bootstrap.Modal(document.getElementById("mappingModal")).show();
+    }
 
-      // Get browser screen position
-      const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
-      const dualScreenTop = window.screenTop !== undefined ? window.screenTop : screen.top;
+    function groupBy(arr, key) {
+      return arr.reduce((acc, obj) => {
+        const group = obj[key] ?? null;
+        if (!acc[group]) acc[group] = [];
+        acc[group].push(obj);
+        return acc;
+      }, {});
+    }
 
-      const windowWidth = window.innerWidth
-        ? window.innerWidth
-        : document.documentElement.clientWidth
-        ? document.documentElement.clientWidth
-        : screen.width;
-      const windowHeight = window.innerHeight
-        ? window.innerHeight
-        : document.documentElement.clientHeight
-        ? document.documentElement.clientHeight
-        : screen.height;
+    async function openNewTopLevelCompany() {
+      const res = await fetch(`/company_tree_data/${groupId}`);
+      const data = await res.json();
+      const topLevelNodes = data.filter(d => d.parent_id === null);
+      const last = topLevelNodes[topLevelNodes.length - 1];
+      const lastCode = last?.input_code || '0';
+      const nextCode = getNextInputCode(lastCode);
+      openCompanyForm(null, null, nextCode);
+    }
 
-      const left = dualScreenLeft + (windowWidth - width) / 2;
-      const top = dualScreenTop + (windowHeight - height) / 2;
+    function getStatusColor(percent) {
+      if (percent >= 100) return 'bg-success';
+      if (percent > 0) return 'bg-warning text-dark';
+      return 'bg-secondary';
+    }
 
-      const features = `scrollbars=yes,resizable=yes,width=${width},height=${height},top=${top},left=${left}`;
-      window.open(`/company_template_mapping_browser/${companyId}`, '_blank', features);
+    function getStatusLabel(percent) {
+      if (percent >= 100) return '✔ Full';
+      if (percent > 0) return `⚠ ${percent}%`;
+      return 'Empty';
     }
 
     window.onload = loadTree;

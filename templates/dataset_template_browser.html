@@ -18,6 +18,22 @@
       </tr>
     </thead>
   </table>
+
+  <!-- Modal -->
+  <div class="modal fade" id="templateFormModal" tabindex="-1" aria-labelledby="templateFormModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="complianceModalLabel">Company Data Template</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-0">
+          <iframe id="templateFormFrame" style="width:100%; height:500px; border:none;"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -64,63 +80,16 @@
       });
 
       $('#btnAddTemplate').click(() => {
+        $('#templateFormFrame').attr('src', newTemplateUrl);
+        new bootstrap.Modal(document.getElementById('templateFormModal')).show();
+      });
 
-        const width = 600;
-        const height = 500;
-
-        // Get browser screen position
-        const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
-        const dualScreenTop = window.screenTop !== undefined ? window.screenTop : screen.top;
-
-        const windowWidth = window.innerWidth
-          ? window.innerWidth
-          : document.documentElement.clientWidth
-          ? document.documentElement.clientWidth
-          : screen.width;
-        const windowHeight = window.innerHeight
-          ? window.innerHeight
-          : document.documentElement.clientHeight
-          ? document.documentElement.clientHeight
-          : screen.height;
-
-        const left = dualScreenLeft + (windowWidth - width) / 2;
-        const top = dualScreenTop + (windowHeight - height) / 2;
-
-        const features = `scrollbars=yes,resizable=yes,width=${width},height=${height},top=${top},left=${left}`;
-        const newWin = window.open(newTemplateUrl, '_blank', features);
-          const timer = setInterval(() => {
-            if (newWin.closed) {
-              clearInterval(timer);
-              $('#templateTable').DataTable().ajax.reload();
-            }
-	    }, 500);
-	  });
     });
 
     function openEditWindow(templateId) {
-      const width = 600;
-      const height = 500;
-
-      const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
-      const dualScreenTop = window.screenTop !== undefined ? window.screenTop : screen.top;
-
-      const windowWidth = window.innerWidth || document.documentElement.clientWidth || screen.width;
-      const windowHeight = window.innerHeight || document.documentElement.clientHeight || screen.height;
-
-      const left = dualScreenLeft + (windowWidth - width) / 2;
-      const top = dualScreenTop + (windowHeight - height) / 2;
-
-      const features = `scrollbars=yes,resizable=yes,width=${width},height=${height},top=${top},left=${left}`;
-      const newWin = window.open(`/dataset_template_form/${datasetType}/${templateId}`, '_blank', features);
-
-      const timer = setInterval(() => {
-        if (newWin.closed) {
-          clearInterval(timer);
-          $('#templateTable').DataTable().ajax.reload();
-        }
-      }, 500);
+      $('#templateFormFrame').attr('src', `/dataset_template_form/${datasetType}/${templateId}`);
+      new bootstrap.Modal(document.getElementById('templateFormModal')).show();
     }
-
 
     function copyTemplate(button, templateId) {
       if (!confirm('Copy this template?')) return;
@@ -151,6 +120,11 @@
           button.innerHTML = oldText;
         });
     }
+
+    document.getElementById('templateFormModal').addEventListener('hidden.bs.modal', () => {
+      $('#templateFormFrame').attr('src', '');
+      $('#templateTable').DataTable().ajax.reload();
+    });
 
   </script>
 

@@ -12,6 +12,7 @@
   <form onsubmit="saveCompany(event)">
     <input type="hidden" name="group_id" id="group_id" value="{{ group_id }}">
     <input type="hidden" name="id" id="company_id" value="{{ company.id if company else '' }}">
+    <input type="hidden" name="parent_id" id="parent_id" value="{{ parent_id or '' }}">
 
     <div class="mb-3">
       <label>Input Code (COA Style)</label>
@@ -29,6 +30,12 @@
   </form>
 
   <script>
+    const params = new URLSearchParams(window.location.search);
+    const autoCode = params.get("auto_code");
+    if (!document.getElementById("input_code").value && autoCode) {
+      document.getElementById("input_code").value = autoCode;
+    }
+
     async function saveCompany(event) {
       event.preventDefault();
       const form = new FormData(event.target);

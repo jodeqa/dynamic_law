@@ -1,14 +1,9 @@
+{% extends "base_modal.html" %}
+
+{% block title %}Company Template Mapping{% endblock %}
+{% block content %}
+
 <!-- company_template_mapping_browser.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>Company Template Mapping Browser</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
-</head>
-<body class="p-4">
   <h2 id="mappingTitle">Company Template Assignments</h2>
 
   <div class="d-flex justify-content-between mb-3">
@@ -42,53 +37,74 @@
     </thead>
   </table>
 
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+  <!-- Modal for Assign Template -->
+  <div class="modal fade" id="templateFormModal" tabindex="-1" aria-labelledby="templateFormModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="templateFormModalLabel">Template Mapping Form</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <iframe id="templateFormFrame" style="width:100%; height:500px; border:none;"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
   <script>
-    const companyId = {{ company_id }};
+    document.getElementById("templateFormModal").addEventListener('hidden.bs.modal', () => {
+      document.getElementById("templateFormFrame").src = "";
+    });
+
+    const companyId = {{ company_id|tojson }};
+
     fetch(`/company_get/${companyId}`)
       .then(res => res.json())
       .then(company => {
         document.getElementById("mappingTitle").innerText = `Template Mapping for ${company.company_name}`;
       });
 
-
     $(document).ready(function () {
       $('#mappingTable').DataTable({
-        ajax: `/company_template_mapping_list/${companyId}`,
+        ajax: {
+          url: `/company_template_mapping_list/${companyId}`,
+          dataSrc: function (json) {
+            console.log('Table data:', json);  // ✅ Log for debug
+            return json.data;
+          }
+        },
         columns: [
           { data: 'year' },
-          { data: 'company_data_description' },
-          { data: 'sheet_description' },
+          {
+            data: null,
+            render: function (data, type, row) {
+              return row.company_data_description || '-';
+            }
+          },
+          {
+            data: null,
+            render: function (data, type, row) {
+              return row.sheet_description || '-';
+            }
+          },
           { data: 'link_description' }
         ]
       });
     });
 
+
     function assignNewTemplate() {
-      const width = 600;
-      const height = 500;
+      const iframe = document.getElementById("templateFormFrame");
+      const url = `/company_template_mapping_form?company_id=${companyId}`;
+      iframe.src = url;
 
-      // Get browser screen position
-      const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : screen.left;
-      const dualScreenTop = window.screenTop !== undefined ? window.screenTop : screen.top;
-
-      const windowWidth = window.innerWidth
-        ? window.innerWidth
-        : document.documentElement.clientWidth
-        ? document.documentElement.clientWidth
-        : screen.width;
-      const windowHeight = window.innerHeight
-        ? window.innerHeight
-        : document.documentElement.clientHeight
-        ? document.documentElement.clientHeight
-        : screen.height;
-
-      const left = dualScreenLeft + (windowWidth - width) / 2;
-      const top = dualScreenTop + (windowHeight - height) / 2;
-
-      const features = `scrollbars=yes,resizable=yes,width=${width},height=${height},top=${top},left=${left}`;
-      window.open(`/company_template_mapping_form?company_id=${companyId}`, '_blank', features);
+      const modal = new bootstrap.Modal(document.getElementById("templateFormModal"), {
+        keyboard: true
+      });
+      modal.show();
     }
 
     function viewHistory() {
@@ -111,5 +127,5 @@
       }
     }
   </script>
-</body>
-</html>
+{% endblock %}
+
