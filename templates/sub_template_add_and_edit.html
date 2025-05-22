@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+{% block title %}Sub Template Field Editor{% endblock %}
+{% block content %}
+
+<div class="container mt-4 p-4 bg-white shadow rounded">
+    <h2 id="formTitle" class="text-center text-primary">Add/Edit Field</h2>
+
+    <form>
+        <input type="hidden" id="sub_template_id" value="{{ sub_template_id }}">
+        <div class="mb-3">
+            <label class="form-label">Sub Template ID:</label>
+            <input type="text" class="form-control" value="{{ sub_template_id }}" readonly>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Parent Field:</label>
+            <span id="parent_display" class="form-control bg-light"></span>
+            <input id="parent_id" type="hidden">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Last Sibling Input Code:</label>
+            <span id="last_sibling_code" class="form-control bg-light"></span>
+        </div>
+
+        <div class="mb-3 form-check">
+            <input id="is_header" type="checkbox" class="form-check-input" onchange="toggleInputFields()">
+            <label class="form-check-label">Is Header (Group Label)?</label>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Input Code:</label>
+            <input id="input_code" type="text" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Display Name:</label>
+            <input id="input_display" type="text" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Input Type:</label>
+            <select id="input_type" class="form-select">
+                <option value="text/free">Text (Free)</option>
+                <option value="text/multiple">Text (Multi Input Mode)</option>
+                <option value="text/matrix2">Text (2-Column Matrix)</option>
+                <option value="text/number">Text (Number)</option>
+                <option value="text/email">Text (Email)</option>
+                <option value="text/date">Text (Date)</option>
+                <option value="text/links">Text (Links)</option>
+                <option value="select/radio">Select (Radio)</option>
+                <option value="select/check">Select (Checkbox)</option>
+                <option value="select/drop">Select (Dropdown)</option>
+            </select>
+        </div>
+
+        <div class="mb-3 form-check">
+            <input id="is_mandatory" type="checkbox" class="form-check-input">
+            <label class="form-check-label">Mandatory</label>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Select Values:</label>
+            <input id="select_value" type="text" class="form-control">
+        </div>
+
+        <div class="mb-3 form-check">
+            <input id="is_upload" type="checkbox" class="form-check-input">
+            <label class="form-check-label">Allow File Upload</label>
+        </div>
+
+        <button type="button" onclick="saveField()" class="btn btn-success w-100">
+            <i class="fa-solid fa-save"></i> Save
+        </button>
+    </form>
+
+    <hr class="my-4">
+    <button class="btn btn-outline-secondary mb-2" type="button" data-bs-toggle="collapse"
+            data-bs-target="#previewContainer">
+        🔍 Show Preview
+    </button>
+    <div id="previewContainer" class="collapse show">
+        <div id="fieldPreview" class="border rounded p-3 bg-light"></div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const dataset_type = "sub_template";
+    const subTemplateId = "{{ sub_template_id }}";
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const params = new URLSearchParams(window.location.search);
+      const editId = params.get("edit");
+      const addParentId = params.get("add_parent");
+      const addSiblingId = params.get("add_sibling");
+      const inputCode = params.get("input_code");
+      const isHeader = params.get("is_header") === "true";
+
+      ["input_display", "input_type", "is_header", "select_value"].forEach(id => {
+        document.getElementById(id).addEventListener("input", updatePreview);
+      });
+      updatePreview();
+
+      const fetchFieldData = async (url) => {
+        const res = await fetch(url);
+        return await res.json();
+      };
+
+      if (editId) {
+        const field = await fetchFieldData(`/dataset_form_get_field/${dataset_type}/${editId}`);
+        document.getElementById("formTitle").innerText = `Edit Field: "${field.input_display}"`;
+        document.getElementById("input_code").value = field.input_code;
+        document.getElementById("input_display").value = field.input_display;
+        document.getElementById("input_type").value = field.input_type || "text/free";
+        document.getElementById("is_mandatory").checked = field.is_mandatory;
+        document.getElementById("select_value").value = field.select_value || "";
+        document.getElementById("is_upload").checked = field.is_upload;
+        document.getElementById("parent_id").value = field.parent_id || "";
+        document.getElementById("is_header").checked = field.is_header;
+
+        const parentInfo = await fetchFieldData(`/dataset_form_get_parent_sibling_info/${dataset_type}/${field.parent_id}/${subTemplateId}`);
+        document.getElementById("parent_display").innerText = parentInfo.parent_display || "Root";
+        document.getElementById("last_sibling_code").innerText = parentInfo.last_sibling_code || "None";
+
+        toggleInputFields();
+      } else if (addParentId || addSiblingId) {
+        const isSibling = !!addSiblingId;
+        const apiUrl = `/dataset_form_get_parent_sibling_info/${dataset_type}/${isSibling ? addSiblingId : addParentId}/${subTemplateId}`;
+        const data = await fetchFieldData(apiUrl);
+
+        document.getElementById("formTitle").innerText = isSibling ? "Add New Sibling" : "Add New Child";
+        document.getElementById("input_code").value = data.next_input_code;
+        document.getElementById("parent_id").value = isSibling ? data.parent_id : addParentId;
+        document.getElementById("parent_display").innerText = data.parent_display || "Root";
+        document.getElementById("last_sibling_code").innerText = data.last_sibling_code || "None";
+      } else if (inputCode) {
+        document.getElementById("formTitle").innerText = "Add Top Level Header";
+        document.getElementById("input_code").value = inputCode;
+        document.getElementById("is_header").checked = isHeader;
+        toggleInputFields();
+      }
+    });
+
+    function toggleInputFields() {
+      const isHeader = document.getElementById("is_header").checked;
+      document.getElementById("input_type").disabled = isHeader;
+      document.getElementById("is_mandatory").disabled = isHeader;
+      document.getElementById("select_value").disabled = isHeader;
+      document.getElementById("is_upload").disabled = isHeader;
+    }
+
+    async function saveField() {
+      const params = new URLSearchParams(window.location.search);
+      const editId = params.get("edit");
+
+      const data = {
+        input_code: document.getElementById("input_code").value,
+        input_display: document.getElementById("input_display").value,
+        input_type: document.getElementById("input_type").value,
+        is_mandatory: document.getElementById("is_mandatory").checked,
+        select_value: document.getElementById("select_value").value,
+        is_upload: document.getElementById("is_upload").checked,
+        parent_id: document.getElementById("parent_id").value || null,
+        is_header: document.getElementById("is_header").checked,
+        sub_template_id: document.getElementById("sub_template_id").value
+      };
+
+      const url = editId
+        ? `/dataset_form_edit_field/${dataset_type}/${editId}`
+        : `/dataset_form_add_field/${dataset_type}`;
+      const method = editId ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+
+      const result = await res.json();
+      alert(result.message);
+      window.opener.location.reload();
+      window.close();
+    }
+
+    function updatePreview() {
+      const display = document.getElementById("input_display").value;
+      const type = document.getElementById("input_type").value;
+      const isHeader = document.getElementById("is_header").checked;
+      const selectValues = document.getElementById("select_value").value;
+      const isMandatory = document.getElementById("is_mandatory").checked;
+      const isUpload = document.getElementById("is_upload").checked;
+
+      const preview = document.getElementById("fieldPreview");
+
+      if (isHeader) {
+        preview.innerHTML = `<h5 class="text-primary fw-bold mb-0">${display}</h5>`;
+        return;
+      }
+
+      let inputHtml = "";
+      const icon = getInputIcon(type);
+      let label = `<label class="form-label">${icon} ${display}${isMandatory ? ' <span class="text-danger">*</span>' : ''}</label>`;
+
+      switch (type) {
+        case "text/free":
+            inputHtml = `<input class="form-control" type="text" placeholder="${display}">`;
+            break;
+        case "text/multiple":
+            const baseId = "multiPreviewList";
+            const values = selectValues
+                ? selectValues.split(",").map(v => v.trim())
+                : ["", "", ""];
+
+            const lineInputs = values.map((val, idx) => `
+                <div class="input-group mb-2" data-row="${idx}">
+                  <input class="form-control" placeholder="Line ${idx + 1}" value="${val}">
+                  <button type="button" class="btn btn-outline-danger" onclick="removePreviewRow(this)">×</button>
+                </div>
+            `).join("");
+
+            inputHtml = `
+                <div id="${baseId}">
+                  ${lineInputs}
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="addPreviewRow('${baseId}')">+ Add Row</button>
+              `;
+          break;
+        case "text/matrix2":
+            const cols = selectValues.split(",").map(v => v.trim());
+            const matrixId = "matrixPreviewTable";
+
+            inputHtml = `
+                <table class="table table-bordered table-sm mb-2" id="${matrixId}">
+                  <thead><tr><th>#</th><th>${cols[0] || 'Col 1'}</th><th>${cols[1] || 'Col 2'}</th><th></th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td>1</td>
+                      <td><input class="form-control"></td>
+                      <td><input class="form-control"></td>
+                      <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeMatrixRow(this)">×</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="addMatrixRow('${matrixId}')">+ Add Row</button>
+            `;
+          break;
+
+        case "text/email":
+        case "text/date":
+        case "text/number":
+        case "text/links":
+            inputHtml = `<input class="form-control" type="${type.split('/')[1]}" placeholder="${display}">`;
+            break;
+        case "select/radio":
+          inputHtml = selectValues.split(",").map(v => `
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="previewRadio">
+              <label class="form-check-label">${v.trim()}</label>
+            </div>
+          `).join("");
+          break;
+        case "select/check":
+          inputHtml = selectValues.split(",").map(v => `
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox">
+              <label class="form-check-label">${v.trim()}</label>
+            </div>
+          `).join("");
+          break;
+        case "select/drop":
+          inputHtml = `<select class="form-select">
+            ${selectValues.split(",").map(v => `<option>${v.trim()}</option>`).join("")}
+          </select>`;
+          break;
+        default:
+          inputHtml = `<input class="form-control" type="text" placeholder="${display}">`;
+      }
+
+      if (isUpload) {
+        inputHtml += `<div class="mt-2"><input type="file" class="form-control"></div>`;
+      }
+
+      preview.innerHTML = `${label}${inputHtml}`;
+    }
+
+    function getInputIcon(inputType) {
+      switch (inputType) {
+        case "text/email": return "📧";
+        case "text/date": return "📅";
+        case "text/number": return "🔢";
+        case "text/links": return "🔗";
+        case "text/free": return "🖊";
+        case "text/multiple": return "🖊";
+        case "text/matrix2": return "🖊";
+        case "select/radio": return "🔘";
+        case "select/check": return "☑️";
+        case "select/drop": return "⬇️";
+        default: return "📝";
+      }
+    }
+
+    function addPreviewRow(containerId) {
+      const container = document.getElementById(containerId);
+      const rowCount = container.children.length;
+      const div = document.createElement("div");
+      div.className = "input-group mb-2";
+      div.dataset.row = rowCount;
+      div.innerHTML = `
+        <input class="form-control" placeholder="Line ${rowCount + 1}">
+        <button type="button" class="btn btn-outline-danger" onclick="removePreviewRow(this)">×</button>
+      `;
+      container.appendChild(div);
+    }
+
+    function removePreviewRow(button) {
+      const row = button.closest(".input-group");
+      row.remove();
+    }
+
+    function addMatrixRow(tableId) {
+      const tbody = document.querySelector(`#${tableId} tbody`);
+      const rowCount = tbody.rows.length;
+      const row = tbody.insertRow();
+
+      row.innerHTML = `
+        <td>${rowCount + 1}</td>
+        <td><input class="form-control"></td>
+        <td><input class="form-control"></td>
+        <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeMatrixRow(this)">×</button></td>
+      `;
+    }
+
+    function removeMatrixRow(button) {
+      const row = button.closest("tr");
+      const table = row.closest("tbody");
+      row.remove();
+
+      // Renumber rows
+      [...table.rows].forEach((r, i) => {
+        r.cells[0].innerText = i + 1;
+      });
+    }
+</script>
+{% endblock %}

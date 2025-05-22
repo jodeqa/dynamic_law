@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 id="templateTitle">Sub Template Browser</h2>
+    <button class="btn btn-outline-primary me-2" onclick="openCompareModal()">Compare Templates</button>
+    <button class="btn btn-primary" id="btnAddTemplate">+ Add New Sub Template</button>
+</div>
+
+<table id="templateTable" class="display" style="width:100%">
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Description</th>
+        <th>Created</th>
+        <th>Actions</th>
+    </tr>
+    </thead>
+</table>
+
+<!-- Modal -->
+<div class="modal fade" id="templateFormModal" tabindex="-1" aria-labelledby="templateFormModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Sub Template Form</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="templateFormFrame" style="width:100%; height:500px; border:none;"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="compareModal" tabindex="-1" aria-labelledby="compareModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Select Templates to Compare</h5></div>
+      <div class="modal-body">
+        <select id="compareLeft" class="form-select mb-2">
+          <option value="">-- Select Left Template --</option>
+        </select>
+        <select id="compareRight" class="form-select">
+          <option value="">-- Select Right Template --</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" onclick="compareSelected()">Compare</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const fetchUrl = "/sub_template_browse_data";
+    const newTemplateUrl = "/sub_template_form";
+
+    $(document).ready(function () {
+      $('#templateTable').DataTable({
+        ajax: fetchUrl,
+        columns: [
+          { data: 'id' },
+          { data: 'name' },
+          { data: 'description' },
+          { data: 'created_at' },
+          {
+            data: null,
+            render: function (row) {
+              return `
+                <button class="btn btn-sm btn-primary" onclick="openEditWindow(${row.id})">Edit Info</button>
+                <a class="btn btn-sm btn-secondary" href="/sub_template_form_browser/${row.id}">Edit Structure</a>
+              `;
+            }
+          }
+        ]
+      });
+
+      $('#btnAddTemplate').click(() => {
+        $('#templateFormFrame').attr('src', newTemplateUrl);
+        new bootstrap.Modal(document.getElementById('templateFormModal')).show();
+      });
+
+      document.getElementById('templateFormModal').addEventListener('hidden.bs.modal', () => {
+        $('#templateFormFrame').attr('src', '');
+        $('#templateTable').DataTable().ajax.reload();
+      });
+    });
+
+    function openEditWindow(templateId) {
+      $('#templateFormFrame').attr('src', `/sub_template_form?template_id=${templateId}`);
+      new bootstrap.Modal(document.getElementById('templateFormModal')).show();
+    }
+
+    function openCompareModal() {
+      const selectLeft = document.getElementById("compareLeft");
+      const selectRight = document.getElementById("compareRight");
+      selectLeft.innerHTML = '<option value="">-- Select Left Template --</option>';
+      selectRight.innerHTML = '<option value="">-- Select Right Template --</option>';
+
+      fetch('/sub_template_browse_data')
+        .then(res => res.json())
+        .then(data => {
+          data.data.forEach(t => {
+            const optL = new Option(t.name, t.id);
+            const optR = new Option(t.name, t.id);
+            selectLeft.add(optL);
+            selectRight.add(optR);
+          });
+          new bootstrap.Modal(document.getElementById('compareModal')).show();
+        });
+    }
+
+    function compareSelected() {
+      const left = document.getElementById("compareLeft").value;
+      const right = document.getElementById("compareRight").value;
+      if (!left || !right || left === right) {
+        alert("Please select two different templates.");
+        return;
+      }
+      window.location.href = `/sub_template_compare.html?left=${left}&right=${right}`;
+    }
+
+</script>
+{% endblock %}

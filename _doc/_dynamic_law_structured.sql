@@ -6,6 +6,7 @@ WHERE datname = 'dynamic_law' AND pid <> pg_backend_pid();
 CREATE TYPE input_type_enum AS ENUM (
     'text/free',
     'text/multiple',
+    'text/matrix2',
     'text/number', 
     'text/email', 
     'text/date', 
@@ -191,6 +192,41 @@ CREATE TABLE company_data_entries_history (
 );
 
 
+
+-- 14 sub template browse
+CREATE TABLE sub_template_browse (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT now()
+);
+
+
+-- 15 sub template structure
+CREATE TABLE sub_template_structure (
+  id SERIAL PRIMARY KEY,
+  sub_template_id INT NOT NULL REFERENCES sub_template_browse(id) ON DELETE CASCADE,
+  input_code VARCHAR(20) NOT NULL,
+  parent_id INT, -- self-reference to another sub_template_structure.id
+  is_header BOOLEAN DEFAULT FALSE,
+  input_display TEXT NOT NULL,
+  input_type VARCHAR(50),
+  is_mandatory BOOLEAN DEFAULT FALSE,
+  select_value TEXT,
+  is_upload BOOLEAN DEFAULT FALSE,
+  sort_order INT DEFAULT 0,
+  created_at TIMESTAMP DEFAULT now()
+);
+
+
+--16
+CREATE TABLE sub_template_usage_log (
+  id SERIAL PRIMARY KEY,
+  sub_template_id INT REFERENCES sub_template_browse(id),
+  used_in VARCHAR(20), -- e.g., 'company_data' or 'compliance'
+  target_id INT,       -- company_data_id or compliance_sheet_id
+  used_at TIMESTAMP DEFAULT now()
+);
 
 
 

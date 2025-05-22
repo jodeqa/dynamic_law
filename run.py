@@ -68,7 +68,7 @@ login_manager.init_app(app)
 app.config.update(
     # SESSION_COOKIE_SECURE=True,       # Only True if you're on HTTPS
     SESSION_COOKIE_SECURE=False,       # Only True if you're on Local
-    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_sudioCOOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax'
 )
 
@@ -82,7 +82,8 @@ class AdminUser(UserMixin):
 dataset_structure_tables = {
     "compliance": "compliance_sheet_structure",
     "corporate": "corporate_structure",
-    "company_data": "company_data_structure"
+    "company_data": "company_data_structure",
+    "sub_template": "sub_template_structure"
 }
 
 dataset_browse_tables = {
@@ -361,9 +362,12 @@ def index():
 
 
 # --- Dataset ---
-@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>', defaults={'company_id': None, 'corporate_id': None, 'input_code': None})
-@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>/<int:company_id>', defaults={'corporate_id': None, 'input_code': None})
-@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>/<int:company_id>/<int:corporate_id>', defaults={'input_code': None})
+@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>',
+           defaults={'company_id': None, 'corporate_id': None, 'input_code': None})
+@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>/<int:company_id>',
+           defaults={'corporate_id': None, 'input_code': None})
+@app.route('/dataset_data_input/<dataset_type>/<int:entity_id>/<int:company_id>/<int:corporate_id>',
+           defaults={'input_code': None})
 @app.route('/dataset_data_input/<dataset_type>/<int:entity_id>/<int:company_id>/<int:corporate_id>/<input_code>')
 def dataset_data_input(dataset_type, entity_id, company_id, corporate_id, input_code):
     """
@@ -748,343 +752,7 @@ def company_delete(id):  # noqa
     return jsonify({"message": "Company deleted"})
 
 
-# dataset Data =======================================================================================================
-@app.route('/dataset_form_browser/<dataset_type>/<int:entity_id>/<string:template_name>')
-def dataset_form_browser(dataset_type, entity_id, template_name):
-    """
-    Route: /dataset_form_browser/<dataset_type>/<entity_id>/<template_name>
-    Purpose: Displays template field structure in Tree/Collapse/Expand style for a dataset.
-    Used in: dataset_template_browser.html ➝ Edit Structure
-    Called from: dataset_form_browser.html
-    Calls: dataset_data_input_get_dataset_structure()
-    """
-    return render_template("dataset_form_browser.html",
-                           dataset_type=dataset_type,
-                           template_name=template_name,
-                           sheet_id=entity_id if dataset_type == "compliance" else None,
-                           corporate_id=entity_id if dataset_type == "corporate" else None,
-                           company_data_id=entity_id if dataset_type == "company_data" else None)
-
-
-# --- Dataset Form Tree ---
-@app.route('/dataset_form_tree/<dataset_type>/<int:entity_id>')
-def dataset_form_tree(dataset_type, entity_id):
-    """
-    Route: /dataset_form_tree/<dataset_type>/<int:entity_id>
-    Purpose: Fetches dataset structure in a flat list (supports nesting).
-    Used in: dataset_form_browser.html to display structure as a tree.
-    """
-    structure_table = dataset_structure_tables.get(dataset_type)
-    if not structure_table:
-        return jsonify({"error": "Invalid dataset type"}), 400
-
-    id_field = (
-        "sheet_id" if dataset_type == "compliance"
-        else "corporate_id" if dataset_type == "corporate"
-        else "company_data_id"
-    )
-
-    conn = get_db_connection()
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cursor.execute(f"SELECT * FROM {structure_table} WHERE {id_field} = %s ORDER BY input_code", (entity_id,))
-    results = cursor.fetchall()
-    conn.close()
-    return jsonify(results)
-
-
-@app.route('/dataset_form_add_and_edit.html')
-def dataset_form_add_and_edit():
-    """
-    Route: /dataset_form_add_and_edit.html
-    Purpose: Renders a unified HTML form to add or edit dataset structure fields.
-    Called from: dataset_form_browser.html ➝ Add/Edit buttons.
-    Calls: dataset_form_add_and_edit.html
-    """
-    dataset_type = request.args.get('dataset_type')
-    sheet_id = request.args.get('sheet_id')
-    corporate_id = request.args.get('corporate_id')
-    company_data_id = request.args.get('company_data_id')
-    return render_template("dataset_form_add_and_edit.html",
-                           dataset_type=dataset_type,
-                           sheet_id=sheet_id,
-                           corporate_id=corporate_id,
-                           company_data_id=company_data_id)
-
-
-# --- Get Parent & Sibling Info ---
-@app.route('/dataset_form_get_parent_sibling_info/<dataset_type>/<int:parent_id>/<int:entity_id>', methods=['GET'])
-def dataset_form_get_parent_sibling_info(dataset_type, parent_id, entity_id):
-    """
-    Route: /dataset_form_get_parent_sibling_info/<dataset_type>/<int:target_id>/<int:entity_id>
-    Purpose: Retrieves parent ID and sibling list for a given field to assist in adding new fields.
-    Used in: dataset_form_browser.html ➝ Add Sibling or Child field
-    """
-    table_name = dataset_structure_tables.get(dataset_type)
-    if not table_name:
-        return jsonify({"error": "Invalid dataset type."}), 400
-
-    conn = get_db_connection()
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    id_field = (
-        "sheet_id" if dataset_type == "compliance"
-        else "corporate_id" if dataset_type == "corporate"
-        else "company_data_id"
-    )
-
-    # Get parent info
-    cursor.execute(f"SELECT input_display FROM {table_name} WHERE id = %s", (parent_id,))
-    parent_row = cursor.fetchone()
-    parent_display = parent_row['input_display'] if parent_row else "Root"
-
-    # Get last sibling code
-    cursor.execute(f"""
-        SELECT input_code FROM {table_name}
-        WHERE parent_id = %s AND {id_field} = %s
-        ORDER BY input_code DESC LIMIT 1
-    """, (parent_id, entity_id))
-    sibling = cursor.fetchone()
-
-    def get_next_code(last_code):   # noqa
-        if not last_code:
-            return "1"
-        parts = last_code.split('.')
-        parts[-1] = str(int(parts[-1]) + 1)
-        return '.'.join(parts)
-
-    last_code = sibling['input_code'] if sibling else None
-    next_code = get_next_code(last_code)
-
-    conn.close()
-    return jsonify({
-        f"{id_field}": entity_id,
-        "parent_id": parent_id,
-        "parent_display": parent_display,
-        "last_sibling_code": last_code,
-        "next_input_code": next_code
-    })
-
-
-@app.route('/dataset_form_get_field/<dataset_type>/<int:field_id>', methods=['GET'])
-def get_field(dataset_type, field_id):
-    """
-    Route: /dataset_form_get_field/<dataset_type>/<int:field_id>
-    Purpose: Fetches a single dataset field for editing.
-    Used in: dataset_form_browser.html ➝ Edit button
-    """
-    table_name = dataset_structure_tables.get(dataset_type)
-    if not table_name:
-        return jsonify({"error": "Invalid dataset type."}), 400
-
-    conn = get_db_connection()
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cursor.execute(f"SELECT * FROM {table_name} WHERE id = %s", (field_id,))
-    field = cursor.fetchone()
-    conn.close()
-    return jsonify(field)
-
-
-@app.route('/dataset_form_add_field/<dataset_type>', methods=['POST'])
-def add_field(dataset_type):
-    """
-    Route: /dataset_form_add_field/<dataset_type> [POST]
-    Purpose: Adds a new field to the dataset structure.
-    Used in: dataset_form_add_and_edit.html (Add form)
-    """
-    table_name = dataset_structure_tables.get(dataset_type)
-    if not table_name:
-        return jsonify({"error": "Invalid dataset type."}), 400
-
-    data = request.json
-    id_field = (
-        "sheet_id" if dataset_type == "compliance"
-        else "corporate_id" if dataset_type == "corporate"
-        else "company_data_id"
-    )
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(f"""
-        INSERT INTO {table_name}
-        ({id_field}, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """, (
-        data.get(id_field), data['input_code'], data.get('parent_id'), data['is_header'],
-        data['input_display'], data['input_type'], data['is_mandatory'], data['select_value'], data['is_upload']
-    ))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Field added successfully."})
-
-
-@app.route('/dataset_form_edit_field/<dataset_type>/<int:field_id>', methods=['PUT'])
-def edit_field(dataset_type, field_id):
-    """
-    Route: /dataset_form_edit_field/<dataset_type>/<int:field_id> [PUT]
-    Purpose: Updates an existing field in the dataset structure.
-    Used in: dataset_form_add_and_edit.html (Edit form)
-    """
-    table_name = dataset_structure_tables.get(dataset_type)
-    if not table_name:
-        return jsonify({"error": "Invalid dataset type."}), 400
-
-    data = request.json
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(f"""
-        UPDATE {table_name} SET
-            input_code = %s,
-            input_display = %s,
-            input_type = %s,
-            is_mandatory = %s,
-            select_value = %s,
-            is_upload = %s,
-            is_header = %s
-        WHERE id = %s
-    """, (
-        data['input_code'], data['input_display'], data['input_type'], data['is_mandatory'],
-        data['select_value'], data['is_upload'], data['is_header'], field_id
-    ))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Field updated successfully."})
-
-
-@app.route('/delete_field/<dataset_type>/<int:field_id>', methods=['DELETE'])
-def delete_field(dataset_type, field_id):
-    """
-    Route: /delete_field/<dataset_type>/<field_id>
-    Purpose: Deletes a field safely if not already used; then renumber sibling fields.
-    Called from: dataset_form_browser.html (Delete button).
-    Calls: renumber_siblings()
-    """
-    structure_table = dataset_structure_tables.get(dataset_type)
-    entry_table = dataset_entries_tables.get(dataset_type)
-    history_table = dataset_history_tables.get(dataset_type)
-
-    if not structure_table or not entry_table or not history_table:
-        return jsonify({"error": "Invalid dataset type."}), 400
-
-    conn = get_db_connection()
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    # Get field info
-    cursor.execute(
-        f"SELECT id, input_code, parent_id, "
-        f"{'sheet_id' if dataset_type == 'compliance' else 'company_data_id'} as entity_id "
-        f"FROM {structure_table} WHERE id = %s",
-        (field_id,))
-
-    field = cursor.fetchone()
-    if not field:
-        conn.close()
-        return jsonify({"error": "Field not found."}), 404
-
-    input_code = field['input_code']
-    parent_id = field['parent_id']
-    entity_id = field['entity_id']
-
-    # Check if this field has entries
-    cursor.execute(f"SELECT COUNT(*) FROM {entry_table} WHERE input_code = %s", (input_code,))
-    count = cursor.fetchone()['count']
-    if count > 0:
-        conn.close()
-        return jsonify({"error": "Cannot delete: field already used by company or user."}), 400
-
-    # Safe to delete: archive and delete
-    cursor.execute(f"INSERT INTO {history_table} "
-                   f"({'sheet_id' if dataset_type == 'compliance' else 'company_data_id'}, "
-                   f"input_code, value, action_type, action_time) "
-                   f"SELECT {'sheet_id' if dataset_type == 'compliance' else 'company_data_id'}, "
-                   f"input_code, value, 'DELETE', NOW() FROM {entry_table} WHERE input_code = %s", (input_code,))
-    cursor.execute(f"DELETE FROM {structure_table} WHERE id = %s", (field_id,))
-
-    conn.commit()
-
-    # Renumber siblings
-    renumber_siblings(dataset_type, parent_id, entity_id)
-    conn.close()
-    return jsonify({"message": "Deleted and Renumbered Successfully."})
-
-
-@app.route('/copy_template/<dataset_type>/<int:template_id>', methods=['POST'])
-def copy_template(dataset_type, template_id):
-    """
-    Route: /copy_template/<dataset_type>/<template_id>
-    Purpose: Copies existing template structure into a new template (including nested fields).
-    Called from: dataset_template_browser.html (Button Copy)
-    """
-    structure_table = dataset_structure_tables.get(dataset_type)
-    template_table = dataset_browse_tables.get(dataset_type)
-    id_field = "company_data_id" if dataset_type == "company_data" else "sheet_id"
-    new_template_id = None
-
-    if not structure_table or not template_table:
-        return jsonify({"error": "Invalid dataset type."}), 400
-
-    conn = get_db_connection()
-    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    # Step 1: Duplicate template metadata
-    if dataset_type == "company_data":
-        cursor.execute("SELECT company_data_search_tag, company_data_description "
-                       "FROM company_data_browse WHERE id = %s", (template_id,))
-        template = cursor.fetchone()
-        if not template:
-            conn.close()
-            return jsonify({"error": "Original template not found."}), 404
-
-        cursor.execute("""INSERT INTO company_data_browse 
-                          (company_data_search_tag, company_data_description, created_at)
-                          VALUES (%s, %s, NOW()) RETURNING id""",
-                       (template['company_data_search_tag'] + " Copy",
-                        template['company_data_description'] + " (Copy)"))
-    else:  # compliance
-        cursor.execute("SELECT sheet_search_tag, sheet_description "
-                       "FROM compliance_sheet_browse WHERE id = %s", (template_id,))
-        template = cursor.fetchone()
-        if not template:
-            conn.close()
-            return jsonify({"error": "Original template not found."}), 404
-
-        cursor.execute("""INSERT INTO compliance_sheet_browse (sheet_search_tag, sheet_description, created_at)
-                          VALUES (%s, %s, NOW()) RETURNING id""",
-                       (template['sheet_search_tag'] + " Copy", template['sheet_description'] + " (Copy)"))
-
-    new_template_id = cursor.fetchone()['id']
-
-    # Step 2: Copy structure rows with temporary NULL parent_id
-    cursor.execute(f"""INSERT INTO {structure_table}
-                      ({id_field}, input_code, parent_id, is_header, input_display, input_type, 
-                      is_mandatory, select_value, is_upload, created_at)
-                      SELECT %s, input_code, NULL, is_header, input_display, input_type, 
-                      is_mandatory, select_value, is_upload, NOW()
-                      FROM {structure_table} WHERE {id_field} = %s
-                      RETURNING id, input_code""", (new_template_id, template_id))
-    new_rows = cursor.fetchall()
-    code_to_new_id = {row['input_code']: row['id'] for row in new_rows}
-
-    # Step 3: Fetch old input_code → parent_id
-    cursor.execute(f"""SELECT id, input_code, parent_id 
-                            FROM {structure_table} WHERE {id_field} = %s""", (template_id,))
-    old_rows = cursor.fetchall()
-    old_id_to_code = {r['id']: r['input_code'] for r in old_rows}
-    child_code_to_parent_code = \
-        {r['input_code']: old_id_to_code.get(r['parent_id']) for r in old_rows if r['parent_id']}
-
-    # Step 4: Update parent_id in new structure
-    for child_code, parent_code in child_code_to_parent_code.items():
-        new_child_id = code_to_new_id.get(child_code)
-        new_parent_id = code_to_new_id.get(parent_code)
-        if new_child_id and new_parent_id:
-            cursor.execute(f"""UPDATE {structure_table} SET parent_id = %s WHERE id = %s""",
-                           (new_parent_id, new_child_id))
-
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Template copied successfully!", "new_id": new_template_id})
-
+# Company Data =========================================================================================================
 
 # --- Optional API for managing company_structure ---
 @app.route('/company_structure_list/<int:group_id>')
@@ -1178,7 +846,11 @@ def company_template_mapping_all():
           ROUND(
             COUNT(DISTINCT s_cd.id) FILTER (
               WHERE s_cd.is_header = FALSE
-                AND ((e_cd.value IS NOT NULL AND TRIM(e_cd.value) <> '') OR (e_cd.file_path IS NOT NULL AND TRIM(e_cd.file_path) <> ''))
+                AND (
+                (
+                    e_cd.value IS NOT NULL AND TRIM(e_cd.value) <> '') 
+                    OR (e_cd.file_path IS NOT NULL AND TRIM(e_cd.file_path) <> '')
+                )
             ) * 100.0 /
             NULLIF(COUNT(DISTINCT s_cd.id) FILTER (WHERE s_cd.is_header = FALSE), 0)
           )::int AS company_data_completion,
@@ -1187,7 +859,11 @@ def company_template_mapping_all():
           ROUND(
             COUNT(DISTINCT s_cs.id) FILTER (
               WHERE s_cs.is_header = FALSE
-                AND ((e_cs.value IS NOT NULL AND TRIM(e_cs.value) <> '') OR (e_cs.file_path IS NOT NULL AND TRIM(e_cs.file_path) <> ''))
+                AND (
+                (
+                    e_cs.value IS NOT NULL AND TRIM(e_cs.value) <> '') 
+                    OR (e_cs.file_path IS NOT NULL AND TRIM(e_cs.file_path) <> '')
+                )
             ) * 100.0 /
             NULLIF(COUNT(DISTINCT s_cs.id) FILTER (WHERE s_cs.is_header = FALSE), 0)
           )::int AS compliance_completion
@@ -1195,11 +871,15 @@ def company_template_mapping_all():
         FROM company_template_mapping m
         LEFT JOIN company_data_structure s_cd ON s_cd.company_data_id = m.company_data_id
         LEFT JOIN company_data_entries e_cd
-          ON e_cd.company_data_id = s_cd.company_data_id AND e_cd.input_code = s_cd.input_code AND e_cd.company_id = m.company_id
+          ON e_cd.company_data_id = s_cd.company_data_id 
+          AND e_cd.input_code = s_cd.input_code 
+          AND e_cd.company_id = m.company_id
         
         LEFT JOIN compliance_sheet_structure s_cs ON s_cs.sheet_id = m.compliance_sheet_id
         LEFT JOIN compliance_sheet_entries e_cs
-          ON e_cs.sheet_id = s_cs.sheet_id AND e_cs.input_code = s_cs.input_code AND e_cs.company_id = m.company_id
+          ON e_cs.sheet_id = s_cs.sheet_id 
+          AND e_cs.input_code = s_cs.input_code 
+          AND e_cs.company_id = m.company_id
         
         GROUP BY m.company_id, m.company_data_id, m.compliance_sheet_id
     """)
@@ -1536,6 +1216,481 @@ def dataset_template_save(dataset_type):
         return jsonify({"error": str(e)})
     finally:
         conn.close()
+
+
+# dataset Data ========================================================================================================
+
+@app.route('/dataset_form_browser/<dataset_type>/<int:entity_id>/<string:template_name>')
+def dataset_form_browser(dataset_type, entity_id, template_name):
+    """
+    Route: /dataset_form_browser/<dataset_type>/<entity_id>/<template_name>
+    Purpose: Displays template field structure in Tree/Collapse/Expand style for a dataset.
+    Used in: dataset_template_browser.html ➝ Edit Structure
+    Called from: dataset_form_browser.html
+    Calls: dataset_data_input_get_dataset_structure()
+    """
+    return render_template("dataset_form_browser.html",
+                           dataset_type=dataset_type,
+                           template_name=template_name,
+                           sheet_id=entity_id if dataset_type == "compliance" else None,
+                           corporate_id=entity_id if dataset_type == "corporate" else None,
+                           company_data_id=entity_id if dataset_type == "company_data" else None)
+
+
+# --- Dataset Form Tree ---
+@app.route('/dataset_form_tree/<dataset_type>/<int:entity_id>')
+def dataset_form_tree(dataset_type, entity_id):
+    """
+    Route: /dataset_form_tree/<dataset_type>/<int:entity_id>
+    Purpose: Fetches dataset structure in a flat list (supports nesting).
+    Used in: dataset_form_browser.html to display structure as a tree.
+    """
+    structure_table = dataset_structure_tables.get(dataset_type)
+    if not structure_table:
+        return jsonify({"error": "Invalid dataset type"}), 400
+
+    id_field = (
+        "sheet_id" if dataset_type == "compliance"
+        else "corporate_id" if dataset_type == "corporate"
+        else "company_data_id" if dataset_type == "company"
+        else "sub_template_id"
+    )
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute(f"SELECT * FROM {structure_table} WHERE {id_field} = %s ORDER BY input_code", (entity_id,))
+    results = cursor.fetchall()
+    conn.close()
+    return jsonify(results)
+
+
+@app.route('/dataset_form_add_and_edit.html')
+def dataset_form_add_and_edit():
+    """
+    Route: /dataset_form_add_and_edit.html
+    Purpose: Renders a unified HTML form to add or edit dataset structure fields.
+    Called from: dataset_form_browser.html ➝ Add/Edit buttons.
+    Calls: dataset_form_add_and_edit.html
+    """
+    dataset_type = request.args.get('dataset_type')
+    sheet_id = request.args.get('sheet_id')
+    corporate_id = request.args.get('corporate_id')
+    company_data_id = request.args.get('company_data_id')
+    return render_template("dataset_form_add_and_edit.html",
+                           dataset_type=dataset_type,
+                           sheet_id=sheet_id,
+                           corporate_id=corporate_id,
+                           company_data_id=company_data_id)
+
+
+# --- Get Parent & Sibling Info ---
+@app.route('/dataset_form_get_parent_sibling_info/<dataset_type>/<int:parent_id>/<int:entity_id>', methods=['GET'])
+def dataset_form_get_parent_sibling_info(dataset_type, parent_id, entity_id):
+    """
+    Route: /dataset_form_get_parent_sibling_info/<dataset_type>/<int:target_id>/<int:entity_id>
+    Purpose: Retrieves parent ID and sibling list for a given field to assist in adding new fields.
+    Used in: dataset_form_browser.html ➝ Add Sibling or Child field
+    """
+    table_name = dataset_structure_tables.get(dataset_type)
+    if not table_name:
+        return jsonify({"error": "Invalid dataset type."}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    id_field = (
+        "sheet_id" if dataset_type == "compliance"
+        else "corporate_id" if dataset_type == "corporate"
+        else "company_data_id" if dataset_type == "company"
+        else "sub_template_id"
+    )
+
+    # Get parent info
+    cursor.execute(f"SELECT input_display FROM {table_name} WHERE id = %s", (parent_id,))
+    parent_row = cursor.fetchone()
+    parent_display = parent_row['input_display'] if parent_row else "Root"
+
+    # Get last sibling code
+    cursor.execute(f"""
+        SELECT input_code FROM {table_name}
+        WHERE parent_id = %s AND {id_field} = %s
+        ORDER BY input_code DESC LIMIT 1
+    """, (parent_id, entity_id))
+    sibling = cursor.fetchone()
+
+    def get_next_code(last_code):   # noqa
+        if not last_code:
+            return "1"
+        parts = last_code.split('.')
+        parts[-1] = str(int(parts[-1]) + 1)
+        return '.'.join(parts)
+
+    last_code = sibling['input_code'] if sibling else None
+    next_code = get_next_code(last_code)
+
+    conn.close()
+    return jsonify({
+        f"{id_field}": entity_id,
+        "parent_id": parent_id,
+        "parent_display": parent_display,
+        "last_sibling_code": last_code,
+        "next_input_code": next_code
+    })
+
+
+@app.route('/dataset_form_get_field/<dataset_type>/<int:field_id>', methods=['GET'])
+def get_field(dataset_type, field_id):
+    """
+    Route: /dataset_form_get_field/<dataset_type>/<int:field_id>
+    Purpose: Fetches a single dataset field for editing.
+    Used in: dataset_form_browser.html ➝ Edit button
+    """
+    table_name = dataset_structure_tables.get(dataset_type)
+    if not table_name:
+        return jsonify({"error": "Invalid dataset type."}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute(f"SELECT * FROM {table_name} WHERE id = %s", (field_id,))
+    field = cursor.fetchone()
+    conn.close()
+    return jsonify(field)
+
+
+@app.route('/dataset_form_add_field/<dataset_type>', methods=['POST'])
+def add_field(dataset_type):
+    """
+    Route: /dataset_form_add_field/<dataset_type> [POST]
+    Purpose: Adds a new field to the dataset structure.
+    Used in: dataset_form_add_and_edit.html (Add form)
+    """
+    table_name = dataset_structure_tables.get(dataset_type)
+    if not table_name:
+        return jsonify({"error": "Invalid dataset type."}), 400
+
+    data = request.json
+    id_field = (
+        "sheet_id" if dataset_type == "compliance"
+        else "corporate_id" if dataset_type == "corporate"
+        else "company_data_id"
+    )
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(f"""
+        INSERT INTO {table_name}
+        ({id_field}, input_code, parent_id, is_header, input_display, input_type, is_mandatory, select_value, is_upload)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (
+        data.get(id_field), data['input_code'], data.get('parent_id'), data['is_header'],
+        data['input_display'], data['input_type'], data['is_mandatory'], data['select_value'], data['is_upload']
+    ))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Field added successfully."})
+
+
+@app.route('/dataset_form_edit_field/<dataset_type>/<int:field_id>', methods=['PUT'])
+def edit_field(dataset_type, field_id):
+    """
+    Route: /dataset_form_edit_field/<dataset_type>/<int:field_id> [PUT]
+    Purpose: Updates an existing field in the dataset structure.
+    Used in: dataset_form_add_and_edit.html (Edit form)
+    """
+    table_name = dataset_structure_tables.get(dataset_type)
+    if not table_name:
+        return jsonify({"error": "Invalid dataset type."}), 400
+
+    data = request.json
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(f"""
+        UPDATE {table_name} SET
+            input_code = %s,
+            input_display = %s,
+            input_type = %s,
+            is_mandatory = %s,
+            select_value = %s,
+            is_upload = %s,
+            is_header = %s
+        WHERE id = %s
+    """, (
+        data['input_code'], data['input_display'], data['input_type'], data['is_mandatory'],
+        data['select_value'], data['is_upload'], data['is_header'], field_id
+    ))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Field updated successfully."})
+
+
+@app.route('/delete_field/<dataset_type>/<int:field_id>', methods=['DELETE'])
+def delete_field(dataset_type, field_id):
+    """
+    Route: /delete_field/<dataset_type>/<field_id>
+    Purpose: Deletes a field safely if not already used; then renumber sibling fields.
+    Called from: dataset_form_browser.html (Delete button).
+    Calls: renumber_siblings()
+    """
+    structure_table = dataset_structure_tables.get(dataset_type)
+    entry_table = dataset_entries_tables.get(dataset_type)
+    history_table = dataset_history_tables.get(dataset_type)
+
+    if not structure_table or not entry_table or not history_table:
+        return jsonify({"error": "Invalid dataset type."}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    # Get field info
+    cursor.execute(
+        f"SELECT id, input_code, parent_id, "
+        f"{'sheet_id' if dataset_type == 'compliance' else 'company_data_id'} as entity_id "
+        f"FROM {structure_table} WHERE id = %s",
+        (field_id,))
+
+    field = cursor.fetchone()
+    if not field:
+        conn.close()
+        return jsonify({"error": "Field not found."}), 404
+
+    input_code = field['input_code']
+    parent_id = field['parent_id']
+    entity_id = field['entity_id']
+
+    # Check if this field has entries
+    cursor.execute(f"SELECT COUNT(*) FROM {entry_table} WHERE input_code = %s", (input_code,))
+    count = cursor.fetchone()['count']
+    if count > 0:
+        conn.close()
+        return jsonify({"error": "Cannot delete: field already used by company or user."}), 400
+
+    # Safe to delete: archive and delete
+    cursor.execute(f"INSERT INTO {history_table} "
+                   f"({'sheet_id' if dataset_type == 'compliance' else 'company_data_id'}, "
+                   f"input_code, value, action_type, action_time) "
+                   f"SELECT {'sheet_id' if dataset_type == 'compliance' else 'company_data_id'}, "
+                   f"input_code, value, 'DELETE', NOW() FROM {entry_table} WHERE input_code = %s", (input_code,))
+    cursor.execute(f"DELETE FROM {structure_table} WHERE id = %s", (field_id,))
+
+    conn.commit()
+
+    # Renumber siblings
+    renumber_siblings(dataset_type, parent_id, entity_id)
+    conn.close()
+    return jsonify({"message": "Deleted and Renumbered Successfully."})
+
+
+@app.route('/copy_template/<dataset_type>/<int:template_id>', methods=['POST'])
+def copy_template(dataset_type, template_id):
+    """
+    Route: /copy_template/<dataset_type>/<template_id>
+    Purpose: Copies existing template structure into a new template (including nested fields).
+    Called from: dataset_template_browser.html (Button Copy)
+    """
+    structure_table = dataset_structure_tables.get(dataset_type)
+    template_table = dataset_browse_tables.get(dataset_type)
+    id_field = "company_data_id" if dataset_type == "company_data" else "sheet_id"
+    new_template_id = None
+
+    if not structure_table or not template_table:
+        return jsonify({"error": "Invalid dataset type."}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    # Step 1: Duplicate template metadata
+    if dataset_type == "company_data":
+        cursor.execute("SELECT company_data_search_tag, company_data_description "
+                       "FROM company_data_browse WHERE id = %s", (template_id,))
+        template = cursor.fetchone()
+        if not template:
+            conn.close()
+            return jsonify({"error": "Original template not found."}), 404
+
+        cursor.execute("""INSERT INTO company_data_browse 
+                          (company_data_search_tag, company_data_description, created_at)
+                          VALUES (%s, %s, NOW()) RETURNING id""",
+                       (template['company_data_search_tag'] + " Copy",
+                        template['company_data_description'] + " (Copy)"))
+    else:  # compliance
+        cursor.execute("SELECT sheet_search_tag, sheet_description "
+                       "FROM compliance_sheet_browse WHERE id = %s", (template_id,))
+        template = cursor.fetchone()
+        if not template:
+            conn.close()
+            return jsonify({"error": "Original template not found."}), 404
+
+        cursor.execute("""INSERT INTO compliance_sheet_browse (sheet_search_tag, sheet_description, created_at)
+                          VALUES (%s, %s, NOW()) RETURNING id""",
+                       (template['sheet_search_tag'] + " Copy", template['sheet_description'] + " (Copy)"))
+
+    new_template_id = cursor.fetchone()['id']
+
+    # Step 2: Copy structure rows with temporary NULL parent_id
+    cursor.execute(f"""INSERT INTO {structure_table}
+                      ({id_field}, input_code, parent_id, is_header, input_display, input_type, 
+                      is_mandatory, select_value, is_upload, created_at)
+                      SELECT %s, input_code, NULL, is_header, input_display, input_type, 
+                      is_mandatory, select_value, is_upload, NOW()
+                      FROM {structure_table} WHERE {id_field} = %s
+                      RETURNING id, input_code""", (new_template_id, template_id))
+    new_rows = cursor.fetchall()
+    code_to_new_id = {row['input_code']: row['id'] for row in new_rows}
+
+    # Step 3: Fetch old input_code → parent_id
+    cursor.execute(f"""SELECT id, input_code, parent_id 
+                            FROM {structure_table} WHERE {id_field} = %s""", (template_id,))
+    old_rows = cursor.fetchall()
+    old_id_to_code = {r['id']: r['input_code'] for r in old_rows}
+    child_code_to_parent_code = \
+        {r['input_code']: old_id_to_code.get(r['parent_id']) for r in old_rows if r['parent_id']}
+
+    # Step 4: Update parent_id in new structure
+    for child_code, parent_code in child_code_to_parent_code.items():
+        new_child_id = code_to_new_id.get(child_code)
+        new_parent_id = code_to_new_id.get(parent_code)
+        if new_child_id and new_parent_id:
+            cursor.execute(f"""UPDATE {structure_table} SET parent_id = %s WHERE id = %s""",
+                           (new_parent_id, new_child_id))
+
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Template copied successfully!", "new_id": new_template_id})
+
+
+#  Sub Template ========================================================================================================
+
+@app.route('/sub_template_browser.html')
+def sub_template_browser_html():
+    return render_template("sub_template_browser.html")
+
+
+@app.route('/sub_template_browse_data')
+def sub_template_browse_data():
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute("SELECT id, name, description, created_at FROM sub_template_browse ORDER BY created_at DESC")
+    data = cursor.fetchall()
+    conn.close()
+    return jsonify({"data": data})
+
+
+@app.route('/sub_template_form', methods=['GET', 'POST'])
+def sub_template_form():
+    if request.method == 'POST':
+        template_id = request.form.get("template_id", type=int)
+        name = request.form['name']
+        description = request.form['description']
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        if template_id:
+            cursor.execute(
+                "UPDATE sub_template_browse SET name=%s, description=%s WHERE id=%s",
+                (name, description, template_id)
+            )
+        else:
+            cursor.execute(
+                "INSERT INTO sub_template_browse (name, description) VALUES (%s, %s) RETURNING id",
+                (name, description)
+            )
+            template_id = cursor.fetchone()[0]  # ✅ this was missing
+
+        conn.commit()
+        conn.close()
+        return jsonify({"message": "Saved", "id": template_id})
+
+    # --- GET request ---
+    template_id = request.args.get("template_id", type=int)
+    template = None
+    if template_id:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cursor.execute("SELECT * FROM sub_template_browse WHERE id = %s", (template_id,))
+        template = cursor.fetchone()
+        conn.close()
+
+    return render_template("sub_template_form.html", template_data=template)
+
+
+@app.route('/sub_template_form_browser/<int:sub_template_id>')
+def sub_template_form_browser(sub_template_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sub_template_browse WHERE id = %s", (sub_template_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return render_template("sub_template_form_browser.html",
+                           sub_template_id=sub_template_id,
+                           template_name=row[0] if row else "Unknown")
+
+
+@app.route('/copy_sub_template_to_template/<dataset_type>/<int:target_id>/<int:sub_template_id>/<int:parent_id>',
+           methods=["POST"])
+def copy_sub_template_to_template(dataset_type, target_id, sub_template_id, parent_id):
+    """
+    dataset_type: 'company_data' or 'compliance'
+    target_id: company_data_id or sheet_id
+    parent_id: parent node in the destination template
+    """
+    structure_table = dataset_structure_tables.get(dataset_type)
+    if not structure_table:
+        return jsonify({"error": "Invalid dataset type"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # 1. Load sub_template_structure tree (ordered)
+    cursor.execute("""
+        WITH RECURSIVE tree AS (
+            SELECT *, 0 AS level FROM sub_template_structure WHERE sub_template_id = %s AND parent_id IS NULL
+            UNION ALL
+            SELECT s.*, t.level + 1
+            FROM sub_template_structure s
+            JOIN tree t ON s.parent_id = t.id
+        )
+        SELECT * FROM tree ORDER BY level, input_code
+    """, (sub_template_id,))
+    source_fields = cursor.fetchall()
+
+    # 2. Generate new entries into the target structure table
+    old_to_new_ids = {}
+    for field in source_fields:
+        parent_new_id = old_to_new_ids.get(field['parent_id'], parent_id)
+        cursor.execute(f"""
+            INSERT INTO {structure_table}
+              (input_code, parent_id, is_header, input_display, input_type, is_mandatory,
+               select_value, is_upload, {'sheet_id' if dataset_type == 'compliance' else 'company_data_id'})
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (
+            field['input_code'],
+            parent_new_id,
+            field['is_header'],
+            field['input_display'],
+            field['input_type'],
+            field['is_mandatory'],
+            field['select_value'],
+            field['is_upload'],
+            target_id
+        ))
+        new_id = cursor.fetchone()[0]
+        old_to_new_ids[field['id']] = new_id
+
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Sub template copied successfully!"})
+
+
+@app.route('/sub_template_add_and_edit.html')
+def sub_template_add_and_edit():
+    sub_template_id = request.args.get('sub_template_id', type=int)
+    return render_template('sub_template_add_and_edit.html', sub_template_id=sub_template_id)
+
+
+@app.route('/sub_template_compare.html')
+def sub_template_compare():
+    return render_template("sub_template_compare.html")
 
 
 # Error Handler for Uniform JSON ======================================================================================

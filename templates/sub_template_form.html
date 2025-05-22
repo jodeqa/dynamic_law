@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Add New Sub Template</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="p-4">
+<h3>{{ "Edit" if template_data else "Add New" }} Sub Template</h3>
+
+<form id="templateForm" onsubmit="event.preventDefault(); submitForm();">
+    <input type="hidden" name="template_id" value="{{ template_data.id if template_data else '' }}">
+
+    <div class="mb-3">
+        <label>Name</label>
+        <input type="text" name="name" class="form-control" required
+               value="{{ template_data.name if template_data else '' }}">
+    </div>
+
+    <div class="mb-3">
+        <label>Description</label>
+        <textarea name="description" class="form-control" rows="4" required>{{ template_data.description if template_data else '' }}</textarea>
+    </div>
+
+    <input id="csrf_token" name="csrf_token" type="hidden" value="{{ csrf_token() }}">
+    <button class="btn btn-success w-100">Save</button>
+</form>
+
+<script>
+    function submitForm() {
+      const form = document.getElementById('templateForm');
+      const formData = new FormData(form);
+      const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+      fetch(`/sub_template_form`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken },
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) return response.text().then(text => { throw new Error(text); });
+        return response.json();
+      })
+      .then(data => {
+        if (data.id) {
+          if (window.parent && window.parent.document) {
+            // refresh DataTable in parent
+            const table = window.parent.$('#templateTable').DataTable();
+            if (table) table.ajax.reload();
+
+            // close the Bootstrap modal
+            const modal = window.parent.bootstrap.Modal.getInstance(
+              window.parent.document.getElementById('templateFormModal')
+            );
+            if (modal) modal.hide();
+          }
+        } else {
+          alert('Failed to save template. Reason: ' + (data.error || 'Unknown'));
+        }
+      })
+      .catch(error => {
+        console.error('Error saving template:', error);
+        alert('An error occurred: ' + error.message);
+      });
+    }
+</script>
+</body>
+</html>

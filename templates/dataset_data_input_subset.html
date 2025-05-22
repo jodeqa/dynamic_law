@@ -59,7 +59,31 @@
         } else {
           html += `<div class="mb-3"><label>${item.input_display}</label>`;
           if (item.input_type?.startsWith("text/")) {
-            html += `<input type="text" class="form-control" disabled>`;
+            if (item.input_type === "text/matrix2") {
+              const [col1, col2] = (item.select_value || "Column A,Column B").split(",").map(v => v.trim());
+              html += `
+                <table class="table table-bordered table-sm mb-2">
+                  <thead>
+                    <tr><th>#</th><th>${col1}</th><th>${col2}</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>1</td><td><input class="form-control" value="Sample A1" disabled></td><td><input class="form-control" value="Sample B1" disabled></td></tr>
+                    <tr><td>2</td><td><input class="form-control" value="Sample A2" disabled></td><td><input class="form-control" value="Sample B2" disabled></td></tr>
+                  </tbody>
+                </table>
+              `;
+            } else if (item.input_type === "text/multiple") {
+              html += `
+                <div class="mb-2">
+                  <input class="form-control mb-2" value="Line 1" disabled>
+                  <input class="form-control mb-2" value="Line 2" disabled>
+                  <input class="form-control mb-2" value="Line 3" disabled>
+                </div>
+              `;
+            } else if (item.input_type?.startsWith("text/")) {
+              const typeHint = item.input_type.split("/")[1];
+              html += `<input class="form-control" value="Sample ${typeHint}" disabled>`;
+            }
           } else if (item.input_type?.startsWith("select/")) {
             html += `<select class="form-select" disabled><option>Sample Option</option></select>`;
           } else if (item.is_upload) {

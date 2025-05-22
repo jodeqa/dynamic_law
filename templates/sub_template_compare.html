@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Compare Sub Templates{% endblock %}
+{% block content %}
+
+<div class="container mt-4">
+  <h3 class="mb-4">Compare Sub Templates</h3>
+  <div class="row">
+    <div class="col"><h5 class="text-primary">Left Template</h5></div>
+    <div class="col"><h5 class="text-success">Right Template</h5></div>
+  </div>
+  <div class="row">
+    <div class="col" id="leftTree"></div>
+    <div class="col" id="rightTree"></div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+const leftId = new URLSearchParams(window.location.search).get("left");
+const rightId = new URLSearchParams(window.location.search).get("right");
+
+async function loadAndCompare() {
+  const [leftRes, rightRes] = await Promise.all([
+    fetch(`/dataset_form_tree/sub_template/${leftId}`),
+    fetch(`/dataset_form_tree/sub_template/${rightId}`)
+  ]);
+
+  const [leftData, rightData] = await Promise.all([leftRes.json(), rightRes.json()]);
+  const leftNames = new Set(leftData.map(d => d.input_display?.trim()));
+  const rightNames = new Set(rightData.map(d => d.input_display?.trim()));
+
+  document.getElementById("leftTree").innerHTML = buildTree(leftData, "", rightNames);
+  document.getElementById("rightTree").innerHTML = buildTree(rightData, "", leftNames);
+}
+
+function buildTree(data, parentCode = "", compareSet = new Set()) {
+  const getParentCode = code => {
+    const parts = code.split(".");
+    parts.pop();
+    return parts.join(".");
+  };
+
+  const items = data.filter(d => getParentCode(d.input_code || "") === parentCode);
+  if (!items.length) return "";
+
+  let html = '<ul class="list-group ms-2">';
+  items.forEach(item => {
+    const hasMatch = compareSet.has(item.input_display?.trim());
+
+    const colorClass = hasMatch
+      ? 'bg-primary-subtle text-primary fw-bold'
+      : '';
+
+    const children = data.filter(d => getParentCode(d.input_code || "") === item.input_code);
+    const hasChildren = children.length > 0;
+
+    const toggleIcon = hasChildren
+      ? `<i class="fa fa-minus toggle-icon me-1" onclick="toggleTree(this)"></i>`
+      : `<i class="fa fa-angle-right me-1 text-muted"></i>`;
+
+    html += `
+      <li class="list-group-item ${colorClass}">
+        ${toggleIcon}
+        <strong>${item.input_code}</strong> — ${item.input_display}
+        <span class="badge bg-light text-dark ms-2">${item.input_type || '-'}</span>
+        ${item.is_mandatory ? '<span class="badge bg-danger ms-1">Required</span>' : ''}
+        ${item.is_upload ? '<span class="badge bg-secondary ms-1">Upload</span>' : ''}
+        <div class="child-tree">${buildTree(data, item.input_code, compareSet)}</div>
+      </li>
+    `;
+  });
+  html += '</ul>';
+  return html;
+}
+
+function toggleTree(icon) {
+  const item = icon.closest('li');
+  const subtree = item.querySelector('.child-tree');
+  if (!subtree) return;
+  const isOpen = subtree.style.display !== 'none';
+  subtree.style.display = isOpen ? 'none' : 'block';
+  icon.className = isOpen ? 'fa fa-plus toggle-icon me-1' : 'fa fa-minus toggle-icon me-1';
+}
+
+document.addEventListener("DOMContentLoaded", loadAndCompare);
+</script>
+{% endblock %}
